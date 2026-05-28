@@ -1,967 +1,698 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🌌 SPECTRA - Poker Spectator HUD</title>
-  
-  <!-- Tailwind CSS & Lucide Icons -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  
-  <!-- CSS グロー & アニメーションエフェクト定義 -->
-  <style>
-    body {
-      background-color: #04070d;
-      color: #a0aec0;
-      font-family: 'Courier New', Courier, monospace;
-    }
-    .glow-blue {
-      text-shadow: 0 0 12px rgba(59, 130, 246, 0.85);
-    }
-    .glow-red {
-      text-shadow: 0 0 12px rgba(239, 68, 68, 0.85);
-    }
-    .glow-red-stroke {
-      filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.9));
-    }
-    .glow-emerald-stroke {
-      filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.9));
-    }
-    .glow-amber-stroke {
-      filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.9));
-    }
-    
-    /* アニメーションするスート脈動エフェクト */
-    @keyframes pulse-slow {
-      0%, 100% { opacity: 0.8; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.02); }
-    }
-    .pulse-glow {
-      animation: pulse-slow 3s infinite ease-in-out;
-    }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GXIVISION POKER SYSTEM v2.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & BASE ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;overflow:hidden;background:#04080f;color:#c8dff0;font-family:'Rajdhani',sans-serif;}
 
-    /* 状態異常：確信度低下時のノイズ砂嵐風アニメーション */
-    @keyframes scanline {
-      0% { bottom: 100%; }
-      100% { bottom: 0%; }
-    }
-    .scanline-effect::after {
-      content: " ";
-      display: block;
-      position: absolute;
-      top: 0; left: 0; bottom: 0; right: 0;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
-      z-index: 50;
-      background-size: 100% 2px, 3px 100%;
-      pointer-events: none;
-    }
-    .unstable-flicker {
-      animation: flicker 0.15s infinite;
-    }
-    @keyframes flicker {
-      0% { opacity: 0.98; }
-      50% { opacity: 0.93; }
-      100% { opacity: 0.96; }
-    }
+/* ── SCANLINES ── */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);pointer-events:none;z-index:9999;}
 
-    /* ホログラフィック・グリッチ展開エフェクト */
-    @keyframes glitch-expand {
-      0% { transform: scaleY(0.01) scaleX(0); opacity: 0; filter: hue-rotate(90deg) brightness(2); }
-      50% { transform: scaleY(1) scaleX(0.02); opacity: 0.8; }
-      100% { transform: scaleY(1) scaleX(1); opacity: 1; }
-    }
-    .glitch-anim {
-      animation: glitch-expand 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-  </style>
+/* ── ROOT LAYOUT: header + main + footer ── */
+#root{display:flex;flex-direction:column;width:100vw;height:100vh;}
+
+/* ── HEADER ── */
+#hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px 14px;
+  border-bottom:1px solid rgba(0,180,255,0.2);
+  background:linear-gradient(90deg,#030810,#060f1e,#030810);
+  flex-shrink:0;height:46px;
+}
+.logo-t{font-family:'Orbitron',monospace;font-size:17px;font-weight:900;color:#00d4ff;text-shadow:0 0 16px rgba(0,212,255,.6);letter-spacing:3px;}
+.logo-s{font-size:8px;letter-spacing:3px;color:rgba(160,200,230,.4);margin-top:1px;}
+.hdr-mid{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:#00d4ff;letter-spacing:4px;text-shadow:0 0 20px rgba(0,212,255,.5);}
+.hdr-r{display:flex;align-items:center;gap:12px;font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(160,200,230,.5);}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:#00ff9d;box-shadow:0 0 8px rgba(0,255,157,.6);animation:blink 1.8s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── MAIN 3-COL GRID ── */
+#main{
+  display:grid;
+  grid-template-columns:190px 1fr 210px;
+  gap:6px;padding:6px;
+  flex:1;min-height:0;
+}
+
+/* ── PANEL BASE ── */
+.pnl{
+  background:#080e1a;
+  border:1px solid rgba(0,180,255,0.15);
+  border-radius:3px;
+  display:flex;flex-direction:column;gap:5px;
+  padding:7px;position:relative;overflow:hidden;
+}
+.pnl::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.4),transparent);}
+.sec{font-family:'Orbitron',monospace;font-size:7.5px;letter-spacing:2.5px;color:rgba(0,212,255,.7);text-transform:uppercase;padding-bottom:4px;border-bottom:1px solid rgba(0,180,255,.12);flex-shrink:0;}
+
+/* ══════════════════════════════
+   LEFT PANEL
+══════════════════════════════ */
+/* Street box */
+#street-box{background:rgba(0,180,255,.06);border:1px solid rgba(0,255,157,.2);border-radius:2px;padding:6px 8px;text-align:center;flex-shrink:0;}
+#street-name{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:#00ff9d;text-shadow:0 0 20px rgba(0,255,157,.7);letter-spacing:2px;}
+#street-cnt{font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(160,200,230,.5);margin-top:2px;}
+
+/* Nuts rows */
+#nuts-list{display:flex;flex-direction:column;gap:3px;flex:1;overflow:hidden;}
+.nuts-row{display:flex;align-items:center;gap:4px;padding:3px 4px;border-bottom:1px solid rgba(255,255,255,.04);}
+.n-rank{font-family:'Orbitron',monospace;font-size:10px;color:#ffb800;min-width:13px;}
+.n-eq{font-family:'Share Tech Mono',monospace;font-size:9px;color:#00d4ff;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.25);border-radius:2px;padding:1px 4px;min-width:40px;text-align:center;}
+.n-hand{font-size:13px;font-weight:700;flex:1;}
+.n-type{font-size:8px;color:rgba(160,200,230,.45);text-align:right;}
+
+/* Legend */
+.leg-row{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(160,200,230,.5);}
+.leg-sw{width:11px;height:11px;border-radius:2px;flex-shrink:0;}
+
+/* ══════════════════════════════
+   CENTER PANEL
+══════════════════════════════ */
+#center-pnl{padding:5px;}
+
+.cam-hdr{display:flex;justify-content:space-between;align-items:center;padding:0 2px;flex-shrink:0;}
+.cam-lbl{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;color:rgba(0,212,255,.7);}
+.cam-lbl span{color:#00d4ff;}
+
+/* Camera / video area */
+#cam-wrap{
+  flex:1;position:relative;
+  background:#000;
+  border:1px solid rgba(0,180,255,.25);
+  border-radius:3px;
+  overflow:hidden;min-height:0;
+}
+#cam-video{width:100%;height:100%;object-fit:cover;display:block;}
+#cam-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+#cam-placeholder{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at center, #0a1830 0%, #020810 70%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+}
+/* Poker table oval inside placeholder */
+#table-oval{
+  width:78%;height:74%;
+  border:3px solid #1e2d45;
+  border-radius:120px;
+  background:radial-gradient(ellipse, #0d1f35 0%, #070f1c 100%);
+  position:relative;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 40px rgba(0,0,0,.8),inset 0 0 30px rgba(0,0,0,.6);
+}
+#table-oval::before{content:'';position:absolute;inset:6px;border:1px solid rgba(0,180,255,.1);border-radius:114px;}
+/* Placeholder players */
+.pl-chip{width:32px;height:32px;border-radius:50%;background:#0f1e30;border:1px solid #1e2d45;display:flex;align-items:center;justify-content:center;font-size:9px;color:#3a5070;font-family:'Share Tech Mono',monospace;}
+.pl-cards{display:flex;gap:2px;}
+.pl-card-back{width:10px;height:15px;background:#1a2a40;border:1px solid #243550;border-radius:1px;}
+#pl-top{position:absolute;top:-20px;display:flex;flex-direction:column;align-items:center;gap:2px;}
+#pl-left{position:absolute;left:-22px;display:flex;align-items:center;gap:2px;}
+#pl-right{position:absolute;right:-22px;display:flex;align-items:center;gap:2px;}
+#pl-bot{position:absolute;bottom:-22px;display:flex;flex-direction:column;align-items:center;gap:2px;}
+
+/* Community card ROI row */
+#roi-row{
+  display:flex;gap:4px;align-items:flex-end;
+  position:relative;z-index:5;
+}
+.roi-slot{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  flex:1;max-width:54px;
+}
+.roi-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,.6);}
+.roi-card{
+  width:100%;aspect-ratio:2/3;
+  border:2px solid rgba(0,255,157,.8);
+  border-radius:3px;
+  background:rgba(0,255,157,.04);
+  box-shadow:0 0 10px rgba(0,255,157,.2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;
+}
+.roi-card.waiting{border-color:rgba(0,180,255,.2);box-shadow:none;background:transparent;}
+.roi-card .card-inner{
+  width:90%;height:90%;background:#fff;border-radius:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;
+}
+.card-rank-tl{position:absolute;top:2px;left:3px;font-size:10px;font-weight:700;color:#111;line-height:1;}
+.card-suit-br{position:absolute;bottom:2px;right:3px;font-size:10px;line-height:1;}
+.card-suit-center{font-size:20px;line-height:1;}
+.suit-c{color:#1a7a1a;}
+.suit-d{color:#cc2020;}
+.suit-h{color:#cc2020;}
+.suit-s{color:#111;}
+.roi-wait-txt{font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(0,180,255,.4);letter-spacing:1px;animation:blink 1.4s step-end infinite;}
+.roi-status{font-family:'Share Tech Mono',monospace;font-size:7px;color:#00ff9d;letter-spacing:.5px;text-align:center;}
+
+/* Stabilizer bar */
+#stab-bar{
+  display:flex;align-items:center;gap:7px;padding:3px 8px;
+  border:1px solid rgba(0,255,157,.25);border-radius:2px;
+  background:rgba(0,255,157,.03);
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  flex-shrink:0;
+}
+#stab-dot{width:7px;height:7px;border-radius:50%;}
+#stab-txt{flex:1;color:#00ff9d;}
+#stab-conf{color:#00d4ff;}
+
+/* ══════════════════════════════
+   RIGHT PANEL
+══════════════════════════════ */
+.wet-big{font-family:'Orbitron',monospace;font-size:24px;font-weight:700;color:#ff3b3b;text-shadow:0 0 14px rgba(255,59,59,.5);}
+.wet-sub{font-size:9px;color:#ff3b3b;letter-spacing:2px;margin-top:-2px;}
+
+.metric{margin-bottom:7px;}
+.metric-lbl{font-size:9px;letter-spacing:1.5px;color:rgba(160,200,230,.45);margin-bottom:2px;}
+.bar-wrap{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:2px;transition:width .7s ease;}
+.metric-val{font-family:'Share Tech Mono',monospace;font-size:11px;margin-top:2px;}
+
+.range-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:3px;}
+.range-name{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1.5px;margin-bottom:3px;}
+.range-val{font-family:'Share Tech Mono',monospace;font-size:13px;font-weight:700;margin-top:2px;}
+
+/* ── HEATMAP ── */
+#hm-wrap{flex:1;display:flex;flex-direction:column;min-height:0;gap:3px;}
+#hm-grid{
+  display:grid;
+  /* 1 header col + 13 data cols = 14 */
+  grid-template-columns:10px repeat(13,1fr);
+  gap:1px;
+  flex:1;min-height:0;
+  align-content:start;
+}
+.hm-hdr{font-family:'Share Tech Mono',monospace;font-size:6px;color:rgba(0,212,255,.5);display:flex;align-items:center;justify-content:center;}
+.hm-c{
+  font-family:'Share Tech Mono',monospace;font-size:5.5px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:1px;aspect-ratio:1/1;
+  transition:background-color .4s ease;
+  cursor:default;color:rgba(255,255,255,.65);
+}
+
+/* ── FOOTER ── */
+#ftr{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:3px 14px;
+  border-top:1px solid rgba(0,180,255,.15);
+  font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(160,200,230,.4);
+  flex-shrink:0;background:rgba(0,0,0,.5);
+}
+.analyzing{color:#00ff9d;animation:blink2 1.4s step-end infinite;}
+@keyframes blink2{0%,100%{opacity:1}50%{opacity:.15}}
+
+/* Demo controls */
+#demo-ctrl{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+  display:flex;gap:5px;
+  background:rgba(4,8,15,.9);border:1px solid rgba(0,180,255,.2);
+  border-radius:3px;padding:5px 8px;z-index:100;
+}
+.dc-btn{
+  font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;
+  padding:4px 10px;border-radius:2px;cursor:pointer;border:1px solid;
+  transition:background .2s;
+}
+.dc-btn.street{background:rgba(0,100,200,.15);border-color:rgba(0,180,255,.4);color:#00d4ff;}
+.dc-btn.street:hover{background:rgba(0,100,200,.35);}
+.dc-btn.conf{background:rgba(0,200,100,.1);border-color:rgba(0,255,157,.3);color:#00ff9d;}
+.dc-btn.conf:hover{background:rgba(0,200,100,.25);}
+</style>
 </head>
-<body class="min-h-screen p-3 select-none flex flex-col justify-between overflow-x-hidden scanline-effect">
+<body>
+<div id="root">
 
-  <!-- ================= HEADER (システム稼働・接続情報) ================= -->
-  <header class="flex justify-between items-center border-b border-[#111c2e] pb-2 mb-2 text-xs">
-    <div class="flex items-center gap-3">
-      <span class="text-white font-bold text-sm tracking-wider">SPECTRA</span>
-      <span class="text-[#3b82f6]/60 text-[10px]">REAL-TIME PROBABILISTIC SPECTATOR HUD [v1.4.2]</span>
+<!-- HEADER -->
+<div id="hdr">
+  <div><div class="logo-t">GXIVISION</div><div class="logo-s">GXIVISION POKER SYSTEM v2.0</div></div>
+  <div class="hdr-mid">GXIVISION</div>
+  <div class="hdr-r">
+    <div class="conn-dot"></div><span id="conn-txt">CONNECTED</span>
+    <span>|</span><span id="fps-d">FPS: 29</span>
+    <span id="time-d">--:--:--</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT -->
+  <div class="pnl">
+    <div id="street-box">
+      <div id="street-name">PREFLOP</div>
+      <div id="street-cnt">0 / 5</div>
     </div>
-    
-    <!-- 中央の立体ネオンバナー -->
-    <div id="system-banner" class="bg-gradient-to-r from-[#111c2e] via-[#10305a] to-[#111c2e] px-12 py-1 rounded-md border border-[#1d4ed8]/40 shadow-[0_0_15px_rgba(29,78,216,0.3)] text-white font-bold tracking-widest text-[11px] transition-all duration-300">
-      SPECTRA CORE ENGINE
+
+    <div class="sec" style="margin-top:3px">NUTS RANKING <span style="font-size:6.5px;opacity:.6">[ABSOLUTE]</span></div>
+    <div id="nuts-list"></div>
+
+    <div style="margin-top:auto;flex-shrink:0;">
+      <div class="sec">LEGEND <span style="font-size:6.5px;opacity:.6">(STRENGTH)</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:5px;">
+        <div class="leg-row"><div class="leg-sw" style="background:#b91c1c"></div>100 - 80</div>
+        <div class="leg-row"><div class="leg-sw" style="background:#c2410c"></div>80 - 60</div>
+        <div class="leg-row"><div class="leg-sw" style="background:#ca8a04"></div>60 - 40</div>
+        <div class="leg-row"><div class="leg-sw" style="background:#15803d"></div>40 - 20</div>
+        <div class="leg-row"><div class="leg-sw" style="background:#0e7490"></div>20 - 0</div>
+      </div>
     </div>
-
-    <div class="flex items-center gap-4 text-[10px]">
-      <div class="flex items-center gap-1.5">
-        <span id="conn-status-dot" class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-        <span id="conn-status-text" class="text-red-400 font-bold uppercase">DISCONNECTED</span>
-      </div>
-      <span id="fps-display" class="text-slate-400">FPS: --</span>
-      <span id="time-display" class="text-slate-200">--:--:--</span>
-    </div>
-  </header>
-
-  <!-- ================= MAIN DASHBOARD GRID ================= -->
-  <div class="grid grid-cols-12 gap-3 flex-1 min-h-0">
-    
-    <!-- ------------- LEFT COLUMN: STREET & NUTS RANKING ------------- -->
-    <section class="col-span-3 lg:col-span-2.5 flex flex-col gap-3 min-h-0">
-      
-      <!-- STREET STATUS -->
-      <div class="bg-[#070b12]/90 border border-[#111c2e] p-3 rounded shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
-        <span class="text-[#3b82f6]/60 text-[10px] block mb-1 font-bold">STREET</span>
-        <div class="flex justify-between items-end">
-          <span id="street-title" class="text-xl font-bold tracking-widest text-[#3b82f6] glow-blue">FLOP</span>
-          <span id="street-cards-count" class="text-xs opacity-60 font-bold mb-0.5">3 / 5</span>
-        </div>
-      </div>
-
-      <!-- NUTS RANKING (絶対強度評価 - より厳密なカード評価を反映) -->
-      <div class="bg-[#070b12]/90 border border-[#111c2e] p-3 rounded flex-1 flex flex-col min-h-0">
-        <div class="flex justify-between items-center mb-3">
-          <span class="text-[#3b82f6]/60 text-[10px] font-bold tracking-wider">NUTS RANKING [ABSOLUTE]</span>
-          <span class="text-[8px] bg-red-950/40 border border-red-500/30 text-red-400 px-1 rounded font-bold">EXACT</span>
-        </div>
-        <div id="nuts-ranking-list" class="flex flex-col gap-2.5 flex-1 justify-center overflow-hidden">
-          <div class="text-center py-4 text-[10px] text-slate-500">Awaiting Server Stream...</div>
-        </div>
-      </div>
-
-      <!-- LEGEND [強度色分布の凡例] -->
-      <div class="bg-[#070b12]/90 border border-[#111c2e] p-3 rounded text-[10px]">
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-[#3b82f6]/60 font-bold tracking-wider">LEGEND [STRENGTH]</span>
-          <div class="flex gap-1">
-            <button onclick="toggleHeatmapMode('spectral')" id="btn-mode-spectral" class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-[#1d4ed8] text-white tracking-wider">SPECTRAL</button>
-            <button onclick="toggleHeatmapMode('absolute')" id="btn-mode-absolute" class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-[#111c2e] text-[#a0aec0] tracking-wider">ABSOLUTE</button>
-          </div>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <div class="flex items-center gap-2"><div class="w-3 h-2.5 rounded-sm bg-[#922b21]"></div><span class="text-slate-400 font-bold">100 - 80 (Nuts Class)</span></div>
-          <div class="flex items-center gap-2"><div class="w-3 h-2.5 rounded-sm bg-[#b05a1a]"></div><span class="text-slate-400 font-bold">80 - 60 (Made Hand)</span></div>
-          <div class="flex items-center gap-2"><div class="w-3 h-2.5 rounded-sm bg-[#bda110]"></div><span class="text-slate-400 font-bold">60 - 40 (Draw Potential)</span></div>
-          <div class="flex items-center gap-2"><div class="w-3 h-2.5 rounded-sm bg-[#277432]"></div><span class="text-slate-400 font-bold">40 - 20 (Weak Pair)</span></div>
-          <div class="flex items-center gap-2"><div class="w-3 h-2.5 rounded-sm bg-[#152e1c]"></div><span class="text-slate-400 font-bold">20 - 0 (Trash)</span></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ------------- CENTER COLUMN: OVERHEAD CAMERA VIEW & FOCUS HUD ------------- -->
-    <main class="col-span-6 lg:col-span-7 flex flex-col gap-3 min-h-0">
-      <div id="camera-feed-container" class="flex-1 bg-[#060a12] border border-[#111c2e] rounded relative overflow-hidden flex flex-col shadow-[inset_0_0_30px_rgba(0,0,0,0.8)] transition-all duration-300 min-h-0">
-        
-        <!-- カメラフィード・ヘッダー -->
-        <div class="flex justify-between items-center bg-[#0a101b] border-b border-[#111c2e] px-3 py-1.5 text-[10px]">
-          <span class="text-[#3b82f6] font-bold flex items-center gap-1.5">
-            <span id="camera-live-dot" class="w-1.5 h-1.5 bg-[#3b82f6] inline-block rounded-full animate-pulse"></span>
-            I LIVE CAMERA FEED [OVERHEAD MAT]
-          </span>
-          <div class="flex items-center gap-3">
-            <span id="connection-latency" class="text-slate-500">LATENCY: -- ms</span>
-            <button onclick="toggleOverlayMap()" class="px-2 py-0.5 bg-cyan-950 border border-cyan-500/30 text-cyan-400 rounded hover:bg-cyan-900/60 transition-all font-bold tracking-widest text-[8px]">
-              SPACE: FOCUS MAP
-            </button>
-          </div>
-        </div>
-
-        <!-- 円卓ポーカーテーブル / ホろグラフィック・フォーカス・オーバーレイ -->
-        <div class="flex-1 relative flex items-center justify-center p-4 min-h-0">
-          
-          <!-- 円卓オーバルプレート -->
-          <div id="table-oval" class="absolute w-[92%] h-[84%] border-[4px] border-[#2d3748] rounded-[140px] bg-[#0c1424] flex items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.9)] transition-all duration-500">
-            <div id="table-inner-glow" class="absolute w-[98%] h-[97%] border border-[#1d4ed8]/20 rounded-[135px] transition-all duration-500"></div>
-            
-            <!-- インサイド・ライン -->
-            <div class="w-[85%] h-[75%] border border-slate-500/20 rounded-[110px] relative flex flex-col items-center justify-center">
-              
-              <!-- ディーラーシミュレータ -->
-              <div class="absolute -top-12 flex flex-col items-center opacity-75 scale-90">
-                <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] text-slate-300">D</div>
-                <div class="flex gap-1.5 mt-1">
-                  <span class="w-2 h-4 bg-emerald-600 rounded-sm shadow-md"></span>
-                  <span class="w-2 h-4 bg-red-600 rounded-sm shadow-md"></span>
-                  <span class="w-2 h-4 bg-blue-600 rounded-sm shadow-md"></span>
-                </div>
-              </div>
-
-              <!-- プレイヤー P1 & P3 (両サイド) -->
-              <div class="absolute -left-12 flex items-center gap-1 opacity-60 scale-75">
-                <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-[9px]">P1</div>
-                <div class="w-6 h-8 bg-slate-700 rounded-sm border border-slate-500 transform -rotate-12"></div>
-              </div>
-              <div class="absolute -right-12 flex items-center gap-1 opacity-60 scale-75">
-                <div class="w-6 h-8 bg-slate-700 rounded-sm border border-slate-500 transform rotate-12"></div>
-                <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-[9px]">P3</div>
-              </div>
-
-              <!-- プレイヤー P2 (手前) -->
-              <div class="absolute -bottom-10 flex flex-col items-center opacity-75 scale-90">
-                <div class="w-6 h-8 bg-slate-700 rounded-sm border border-slate-500 transform rotate-3 mb-1"></div>
-                <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center text-[10px] text-slate-300">P2</div>
-              </div>
-
-              <!-- ================= コミュニティカード & ROI 検出矩形 ================= -->
-              <div id="board-roi-container" class="flex gap-3 items-center mt-2 z-10">
-                <!-- パースされたカードがJSにより動的に生成・配置されます -->
-              </div>
-
-              <!-- スタビライザーロック表示 (確率的状態推定結果) -->
-              <div class="absolute bottom-3 text-center z-10">
-                <div id="stabilizer-badge" class="flex items-center justify-center gap-1.5 text-[9px] bg-black/80 border border-emerald-500/30 px-3 py-1 rounded text-emerald-400 font-bold transition-all duration-300">
-                  <span id="stabilizer-dot" class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
-                  <span id="stabilizer-text">STABILIZER LOCKED [CONFIRMED 3 FRAME]</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <!-- テーブル装飾 (チップ) -->
-          <div class="absolute top-1/4 left-[10%] w-6 h-6 rounded-full bg-emerald-700/30 border border-emerald-500/10 flex items-center justify-center text-[8px] text-slate-500 opacity-50">CHIP</div>
-          <div class="absolute bottom-1/4 right-[12%] w-8 h-8 rounded-full bg-slate-700/20 border border-slate-500/10 flex items-center justify-center text-[8px] text-slate-500 opacity-50">POT</div>
-
-          <!-- ================= HOLO-MAP FOCUS OVERLAY ================= -->
-          <div id="holo-overlay" class="absolute inset-2 bg-[#02050b]/95 border border-[#1d4ed8]/50 rounded p-4 flex-col hidden z-30 glitch-anim">
-            <div class="flex justify-between items-center border-b border-[#1d4ed8]/30 pb-2 mb-3">
-              <span class="text-xs font-bold text-cyan-400 tracking-widest flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping inline-block"></span>
-                HOLOGRAPHIC FOCUS DYNAMIC MAP [13x13]
-              </span>
-              <span class="text-[9px] text-[#3b82f6]">PRESS SPACE TO DISMISS</span>
-            </div>
-            
-            <!-- フルサイズ13x13グリッド描画領域 -->
-            <div class="flex-1 min-h-0 flex items-center justify-center">
-              <div id="holo-heatmap-grid" class="grid grid-cols-14 gap-[1.5px] bg-black/50 p-2 rounded border border-[#111c2e] w-full max-w-[480px]">
-                <!-- ホログラフィックフルサイズマップ -->
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- コア監視フッター -->
-        <div class="bg-[#070b12] border-t border-[#111c2e] px-3 py-1 flex justify-between items-center text-[10px]">
-          <span id="analyzing-status" class="text-slate-500">ANALYZING BOARD... <span class="text-slate-400 font-bold">SLEEP</span></span>
-          <span class="text-[#3b82f6]/60">SPECTRA OBSERVATION CORE</span>
-        </div>
-      </div>
-    </main>
-
-    <!-- ------------- RIGHT COLUMN: TEXTURE & ADVANATGE & HEATMAP ------------- -->
-    <section class="col-span-3 lg:col-span-2.5 flex flex-col gap-3 min-h-0">
-      
-      <!-- ANALYTICS PROGRESS -->
-      <div class="bg-[#070b12]/90 border border-[#111c2e] p-3 rounded">
-        <span class="text-[#3b82f6]/60 text-[10px] block mb-2 font-bold tracking-wider">ANALYTICS & HUD</span>
-        <div class="h-1.5 bg-[#111c2e] rounded-full overflow-hidden relative">
-          <div id="hud-progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full w-[0%] transition-all duration-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
-        </div>
-      </div>
-
-      <!-- BOARD TEXTURE (危険度・うねる波形) -->
-      <div class="bg-[#070b12]/90 border border-[#111c2e] p-3 rounded flex flex-col gap-1.5">
-        <span class="text-[#3b82f6]/60 text-[10px] block font-bold tracking-wider">BOARD TEXTURE</span>
-        <div class="flex justify-between items-start">
-          <div>
-            <span id="texture-wet-percentage" class="text-2xl font-bold text-red-500 glow-red">--%</span>
-            <span id="texture-wet-label" class="text-[10px] text-red-500 font-bold block leading-none">AWAITING</span>
-          </div>
-          
-          <!-- ベクトルうねり波形 -->
-          <div class="w-24 h-12 opacity-80">
-            <svg viewBox="0 0 100 40" class="w-full h-full">
-              <path id="texture-wave-path" d="M 0,40 C 20,40 30,40 50,40 C 70,40 80,40 100,40" fill="none" stroke="#ef4444" stroke-width="2" class="glow-red-stroke" />
-              <path id="texture-wave-fill" d="M 0,40 C 20,40 30,40 50,40 C 70,40 80,40 100,40 L 100,40 L 0,40 Z" fill="url(#red-gradient)" opacity="0.15" />
-              <defs>
-                <linearGradient id="red-gradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#ef4444" />
-                  <stop offset="100%" stop-color="transparent" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-        </div>
-
-        <div class="text-[10px] flex flex-col gap-1 border-t border-[#111c2e] pt-2 mt-1">
-          <div class="flex justify-between">
-            <span>CONNECTEDNESS</span>
-            <span id="texture-connectedness" class="text-white font-bold">--%</span>
-          </div>
-          <div class="flex justify-between">
-            <span>FLUSH DENSITY</span>
-            <span id="texture-flush" class="text-white font-bold">--%</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- RANGE ADVANTAGE (BTN vs BB レンジ空中戦勝率) -->
-      <div class="bg-[#070b12]/90 border border-[#111c2e] p-3 rounded flex flex-col gap-2">
-        <span class="text-[#3b82f6]/60 text-[10px] block font-bold tracking-wider">RANGE ADVANTAGE [BTN vs BB]</span>
-        
-        <div class="text-[10px] flex flex-col gap-2">
-          <div>
-            <div class="flex justify-between mb-0.5 font-bold">
-              <span class="text-red-400">BTN (オープンレイザー)</span>
-              <span id="equity-btn-text" class="text-red-400">--%</span>
-            </div>
-            <div class="h-1.5 bg-[#111c2e] rounded-sm overflow-hidden">
-              <div id="equity-btn-bar" class="h-full bg-red-500 transition-all duration-500" style="width: 0%"></div>
-            </div>
-          </div>
-
-          <div>
-            <div class="flex justify-between mb-0.5 font-bold">
-              <span class="text-[#3b82f6]">BB (ディフェンダー)</span>
-              <span id="equity-bb-text" class="text-[#3b82f6]">--%</span>
-            </div>
-            <div class="h-1.5 bg-[#111c2e] rounded-sm overflow-hidden">
-              <div id="equity-bb-bar" class="h-full bg-[#1d4ed8] transition-all duration-500" style="width: 0%"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- レンジ時系列変遷グラフ -->
-        <div class="h-12 w-full mt-1">
-          <svg viewBox="0 0 100 30" class="w-full h-full">
-            <path id="graph-btn-line" d="M 0,15 L 100,15" fill="none" stroke="#ef4444" stroke-width="1.5" />
-            <path id="graph-bb-line" d="M 0,15 L 100,15" fill="none" stroke="#1d4ed8" stroke-width="1.5" />
-          </svg>
-        </div>
-      </div>
-
-      <!-- DYNAMIC HEATMAP (右下配置の極小13x13グリッド) -->
-      <div class="bg-[#070b12]/90 border border-[#111c2e] p-2.5 rounded flex flex-col gap-2 flex-1 min-h-0">
-        <span class="text-[#3b82f6]/60 text-[10px] block font-bold tracking-wider leading-none">DYNAMIC HEATMAP [13x13]</span>
-        
-        <div class="flex-1 min-h-0 flex flex-col justify-center">
-          <div id="heatmap-grid" class="grid grid-cols-14 gap-[1px] bg-black/40 p-1 rounded">
-            <!-- 13x13 169マスがJSによってここに極限に小さく生成・配置されます -->
-          </div>
-        </div>
-      </div>
-
-    </section>
   </div>
 
-  <!-- ================= CONTROL DEMO WIDGET ================= -->
-  <footer class="mt-2 bg-[#070b12] border border-[#111c2e] p-2 rounded flex justify-between items-center text-[10px]">
-    <span class="text-slate-500 font-bold">CONTROL CONSOLE (MULTIPLE SYSTEM STATES & OFFLINE DEMO)</span>
-    <div class="flex gap-1.5 flex-wrap">
-      <button onclick="setMockBoard('flop')" class="bg-[#111c2e] hover:bg-[#1a2b44] border border-[#3b82f6]/30 px-2.5 py-1 rounded text-white font-bold transition-all text-[9px]">FLOP [9♣ 8♣ 7♦]</button>
-      <button onclick="setMockBoard('turn')" class="bg-[#111c2e] hover:bg-[#1a2b44] border border-[#3b82f6]/30 px-2.5 py-1 rounded text-white font-bold transition-all text-[9px]">TURN [9♣ 8♣ 7♦ J♣]</button>
-      <button onclick="setMockBoard('river')" class="bg-[#111c2e] hover:bg-[#1a2b44] border border-[#3b82f6]/30 px-2.5 py-1 rounded text-white font-bold transition-all text-[9px]">RIVER [9♣ 8♣ 7♦ J♣ 2♦]</button>
-      <span class="w-[1px] h-4 bg-slate-800 self-center"></span>
-      <button onclick="setSystemConfidence('LOCKED')" class="bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30 px-2.5 py-1 rounded text-emerald-400 font-bold text-[9px] transition-all">LOCKED (安定)</button>
-      <button onclick="setSystemConfidence('TRACKING')" class="bg-blue-950/40 hover:bg-blue-900/60 border border-blue-500/30 px-2.5 py-1 rounded text-blue-400 font-bold text-[9px] transition-all">TRACKING (一時ノイズ)</button>
-      <button onclick="setSystemConfidence('UNSTABLE')" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 px-2.5 py-1 rounded text-amber-400 font-bold text-[9px] transition-all">UNSTABLE (遮蔽予兆)</button>
-      <button onclick="setSystemConfidence('LOST')" class="bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 px-2.5 py-1 rounded text-red-400 font-bold text-[9px] transition-all">LOST (完全消失)</button>
+  <!-- CENTER -->
+  <div class="pnl" id="center-pnl">
+    <div class="cam-hdr">
+      <div class="cam-lbl">▐ LIVE CAMERA FEED <span>[OVERHEAD MAT]</span></div>
+      <div id="board-hash" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(160,200,230,.4)">BOARD: --</div>
     </div>
-  </footer>
 
-  <!-- ================= CORE LOGIC (SPECTRA FRONTEND ENGINE) ================= -->
-  <script>
-    const HANDS_ORDER = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-    let socket = null;
-    let btnHistory = [15, 15, 15, 15, 15];
-    let bbHistory = [15, 15, 15, 15, 15];
-    
-    // システム状態パラメータの多態化
-    let systemState = "LOCKED"; // LOCKED | TRACKING | UNSTABLE | LOST
-    let currentHeatmapMode = "spectral"; // spectral (演出圧力) | absolute (純粋勝率値)
-    let lastCachedHash = ""; // 描画負荷削減用キャッシュ判定キー
-    let isOverlayOpen = false; // フォーカスオーバーレイの開閉フラグ
+    <!-- Camera / placeholder area -->
+    <div id="cam-wrap">
+      <video id="cam-video" autoplay playsinline muted style="display:none;"></video>
+      <canvas id="cam-canvas"></canvas>
 
-    // 1. 13x13 マトリクスの初期スケルトン生成 (通常ミニサイズと、ホロフォーカス用の両方)
-    function buildHeatmapSkeleton() {
-      const grid = document.getElementById('heatmap-grid');
-      const holoGrid = document.getElementById('holo-heatmap-grid');
-      
-      grid.innerHTML = '';
-      holoGrid.innerHTML = '';
-      
-      // 左上角の空セル
-      grid.appendChild(document.createElement('div'));
-      holoGrid.appendChild(document.createElement('div'));
-      
-      // 列ヘッダー (A - 2)
-      HANDS_ORDER.forEach(h => {
-        const header = document.createElement('div');
-        header.className = "text-center text-[7px] text-[#4a5568] font-bold leading-none";
-        header.innerText = h;
-        grid.appendChild(header);
-
-        const holoHeader = document.createElement('div');
-        holoHeader.className = "text-center text-[9px] text-[#3b82f6]/70 font-bold leading-none";
-        holoHeader.innerText = h;
-        holoGrid.appendChild(holoHeader);
-      });
-
-      // 行データ
-      HANDS_ORDER.forEach((r1, i) => {
-        // 行ヘッダー
-        const rowHeader = document.createElement('div');
-        rowHeader.className = "text-center text-[7px] text-[#4a5568] font-bold flex items-center justify-center leading-none";
-        rowHeader.innerText = r1;
-        grid.appendChild(rowHeader);
-
-        const holoRowHeader = document.createElement('div');
-        holoRowHeader.className = "text-center text-[9px] text-[#3b82f6]/70 font-bold flex items-center justify-center leading-none";
-        holoRowHeader.innerText = r1;
-        holoGrid.appendChild(holoRowHeader);
-
-        HANDS_ORDER.forEach((r2, j) => {
-          const isSuited = i < j;
-          const label = `${r1}${r2}${r1 === r2 ? '' : (isSuited ? 's' : 'o')}`;
-          
-          // ミニセル
-          const cell = document.createElement('div');
-          cell.id = `cell-${r1}${r2}`;
-          cell.className = "aspect-square rounded-[1px] flex items-center justify-center text-[5px] font-bold leading-none bg-[#152e1c] text-[#2f5a38] transition-all duration-300 cursor-crosshair";
-          cell.innerText = `${r1}${r2}`;
-          cell.setAttribute('data-val', '0');
-          grid.appendChild(cell);
-
-          // ホロフォーカス用大型セル (ジッターを抑制しプロ仕様に)
-          const holoCell = document.createElement('div');
-          holoCell.id = `holo-cell-${r1}${r2}`;
-          holoCell.className = "aspect-square rounded-[2px] flex items-center justify-center text-[8px] font-bold leading-none bg-[#091122] text-[#1e293b] border border-[#111c2e]/50 transition-all duration-200 cursor-pointer hover:border-cyan-400";
-          holoCell.innerText = `${r1}${r2}`;
-          holoCell.setAttribute('data-val', '0');
-          holoGrid.appendChild(holoCell);
-        });
-      });
-    }
-
-    // 2層式色相設計 (Absolute vs Spectral)
-    function getCellColor(val, mode) {
-      if (mode === 'absolute') {
-        // 純粋勝率に忠実な寒色〜中間色への展開
-        if (val >= 80) return { bg: '#10305a', text: '#bfdbfe' }; // 鉄板
-        if (val >= 60) return { bg: '#1e3a8a', text: '#93c5fd' }; // 有利
-        if (val >= 40) return { bg: '#0f172a', text: '#64748b' }; // 拮抗
-        if (val >= 20) return { bg: '#020617', text: '#475569' }; // 弱手
-        return { bg: '#090d16', text: '#1e293b' }; // ゴミ
-      } else {
-        // SPECTRAL PRESSURE (緊張・ドロー期待・赤金色マグマ演出)
-        if (val >= 80) return { bg: '#922b21', text: '#fecaca' }; // ナッツクラス
-        if (val >= 60) return { bg: '#b05a1a', text: '#fef3c7' }; // メイドハンド
-        if (val >= 40) return { bg: '#bda110', text: '#fef9c3' }; // ドロー可能性
-        if (val >= 20) return { bg: '#277432', text: '#d1fae5' }; // 弱ワンペア
-        return { bg: '#152e1c', text: '#2f5a38' }; // 無風
-      }
-    }
-
-    // クライアント側での厳密なNuts Evaluator（役判定エンジンの再現化）
-    function evaluateBoardNuts(board) {
-      const nutsRanking = [];
-      const boardRanks = board.map(c => c[0].toUpperCase());
-      const boardSuits = board.map(c => c[1].toLowerCase());
-
-      const rankValues = { 'A':14, 'K':13, 'Q':12, 'J':11, 'T':10, '9':9, '8':8, '7':7, '6':6, '5':5, '4':4, '3':3, '2':2 };
-      const categoryEvaluations = [];
-
-      HANDS_ORDER.forEach((r1, i) => {
-        HANDS_ORDER.forEach((r2, j) => {
-          if (i > j) return; // 重複スキップ (AA, AKs, AKoなどを一巡で評価)
-          
-          const isPair = r1 === r2;
-          const isSuited = i < j;
-          const label = `${r1}${r2}${isPair ? '' : (isSuited ? 's' : 'o')}`;
-          
-          let score = 10; // ベース
-          let desc = "ハイカード";
-
-          // ボードカードがまだない場合 (PREFLOP)
-          if (board.length === 0) {
-            score = 100 - (i + j) * 3 + (isPair ? 30 : 0);
-            desc = isPair ? "高位ペア" : "プレミアムレンジ";
-            categoryEvaluations.push({ hand: label, score, desc });
-            return;
-          }
-
-          const allRanksInPlay = [...boardRanks, r1, r2];
-          const rankCounts = {};
-          allRanksInPlay.forEach(r => rankCounts[r] = (rankCounts[r] || 0) + 1);
-
-          // 1. フォー・オブ・ア・カインド (クワッズ) の判定
-          const hasQuads = Object.values(rankCounts).includes(4);
-          
-          // 2. フルハウス / スリーカード / ツーペア
-          const counts = Object.values(rankCounts).sort((a,b)=>b-a);
-          const trips = counts[0] === 3;
-          const pairsCount = Object.values(rankCounts).filter(c => c === 2).length;
-
-          // 3. フラッシュの判定（ブロッカーとマークの噛み合いの厳密化）
-          let hasFlush = false;
-          let maxSuitCount = 0;
-          
-          if (isSuited) {
-            // スーテッドかつマークがボードと同調する場合
-            boardSuits.forEach(s => {
-              const currentSuitCount = boardSuits.filter(x => x === s).length + 2; // 手札の2枚を追加
-              if (currentSuitCount > maxSuitCount) {
-                maxSuitCount = currentSuitCount;
-              }
-            });
-          } else {
-            // オフスート、またはペアの場合 (各1枚追加されるスートで判定)
-            boardSuits.forEach(s => {
-              const currentSuitCount = boardSuits.filter(x => x === s).length + 1; // 手札の1枚を追加
-              if (currentSuitCount > maxSuitCount) {
-                maxSuitCount = currentSuitCount;
-              }
-            });
-          }
-
-          if (maxSuitCount >= 5) {
-            hasFlush = true;
-            score = 80 + maxSuitCount;
-            desc = "フラッシュ";
-          }
-
-          // 4. ストレート判定 (5連続の厳密チェック)
-          let hasStraight = false;
-          const uniqueVals = Array.from(new Set(allRanksInPlay.map(r => rankValues[r]))).sort((a,b)=>b-a);
-          if (uniqueVals.includes(14)) uniqueVals.push(1); // エースロー
-          
-          for (let start = 0; start <= uniqueVals.length - 5; start++) {
-            if (uniqueVals[start] - uniqueVals[start+4] === 4) {
-              hasStraight = true;
-              break;
-            }
-          }
-
-          // 最終スコアへの統合判定（ペアボード時のフルハウス・セットの価値急騰）
-          const boardHasPair = Object.values(rankCounts).filter(c => c >= 2).length > (isPair ? 1 : 0);
-
-          if (hasQuads) {
-            score = 98; desc = "クワッズ";
-          } else if (trips && (pairsCount >= 1 || counts[1] >= 2)) {
-            score = 95 + (rankValues[r1] * 0.1); 
-            desc = "フルハウス";
-          } else if (hasFlush) {
-            score = 85 + (rankValues[r1] * 0.1);
-            desc = "フラッシュ";
-          } else if (hasStraight) {
-            score = 75 + (rankValues[r1] * 0.1);
-            desc = "ストレート";
-          } else if (trips) {
-            score = 60 + (isPair ? 8 : 0) + (rankValues[r1] * 0.1); 
-            desc = isPair ? "セット" : "スリーカード";
-          } else if (pairsCount >= 2) {
-            score = 45 + (rankValues[r1] * 0.1); 
-            desc = "ツーペア";
-          } else if (counts[0] === 2) {
-            score = 25 + (rankValues[r1] * 0.1); 
-            desc = "ワンペア";
-          } else {
-            score = 10 + (rankValues[r1] * 0.1); 
-            desc = "ハイカード";
-          }
-
-          categoryEvaluations.push({ hand: label, score, desc });
-        });
-      });
-
-      // ナッツランキングをソートして上位を抽出
-      const sortedNuts = categoryEvaluations.sort((a, b) => b.score - a.score);
-      
-      for (let k = 0; k < 5; k++) {
-        if (sortedNuts[k]) {
-          nutsRanking.push({
-            rank: k + 1,
-            hand: sortedNuts[k].hand,
-            desc: sortedNuts[k].desc,
-            eq: Math.min(99.9, (sortedNuts[k].score + (4.5 - k * 0.8))).toFixed(1)
-          });
-        }
-      }
-      return nutsRanking;
-    }
-
-    // 2. ROI表示の動的描画
-    function renderBoardROIs(boardCards) {
-      const container = document.getElementById('board-roi-container');
-      container.innerHTML = '';
-      
-      const suitsMap = { 's': '♠', 'h': '♥', 'd': '♦', 'c': '♣' };
-      const colorsMap = { 's': 'text-slate-300', 'h': 'text-red-500', 'd': 'text-red-500', 'c': 'text-emerald-500' };
-
-      for (let i = 1; i <= 5; i++) {
-        const cardStr = boardCards[i - 1]; // 例: '9c'
-        const itemContainer = document.createElement('div');
-        itemContainer.className = "flex flex-col items-center gap-1";
-
-        const label = document.createElement('span');
-        label.className = "text-[9px] font-bold text-emerald-400 opacity-85";
-        label.innerText = `ROI ${i}`;
-        itemContainer.appendChild(label);
-
-        const cardRect = document.createElement('div');
-        
-        if (cardStr) {
-          const rank = cardStr[0].toUpperCase();
-          const suitChar = suitsMap[cardStr[1]] || '';
-          const suitColor = colorsMap[cardStr[1]] || 'text-white';
-          
-          cardRect.className = "w-12 h-16 rounded border border-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.35)] bg-black/60 flex items-center justify-center relative";
-          cardRect.innerHTML = `
-            <div class="flex flex-col items-center justify-center bg-white w-[92%] h-[92%] rounded-[2px] text-black font-bold p-0.5">
-              <span class="text-xs leading-none self-start ml-0.5">${rank}</span>
-              <span class="text-lg leading-none ${suitColor}">${suitChar}</span>
-            </div>
-          `;
-        } else {
-          cardRect.className = "w-12 h-16 rounded border border-slate-700 border-dashed bg-black/60 flex items-center justify-center relative";
-          cardRect.innerHTML = `<span class="text-[8px] text-slate-600 font-bold uppercase tracking-wider animate-pulse">WAIT</span>`;
-        }
-
-        itemContainer.appendChild(cardRect);
-        container.appendChild(itemContainer);
-      }
-    }
-
-    // 3. 各種グラフ・インジケーターの動的描画＆アップデート
-    function updateHUDGraphics(data) {
-      // 描画負荷削減用キャッシュ判定
-      const currentHash = `${data.street}_${data.board.join('')}_${currentHeatmapMode}_${systemState}_${isOverlayOpen}`;
-      
-      // STREET
-      document.getElementById('street-title').innerText = data.street;
-      document.getElementById('street-cards-count').innerText = `${data.board.length} / 5`;
-
-      // WETNESS & TEXTURE
-      const wet = data.metrics.wetness;
-      const wetLabel = document.getElementById('texture-wet-label');
-      document.getElementById('texture-wet-percentage').innerText = `${wet}%`;
-      
-      if (wet >= 80) {
-        wetLabel.innerText = "VERY WET";
-        wetLabel.className = "text-[10px] text-red-500 font-bold block leading-none animate-pulse";
-      } else if (wet >= 50) {
-        wetLabel.innerText = "WET";
-        wetLabel.className = "text-[10px] text-amber-500 font-bold block leading-none";
-      } else {
-        wetLabel.innerText = "DRY";
-        wetLabel.className = "text-[10px] text-emerald-500 font-bold block leading-none";
-      }
-
-      document.getElementById('texture-connectedness').innerText = `${data.metrics.connectedness}%`;
-      document.getElementById('texture-flush').innerText = `${data.metrics.flush_density}%`;
-
-      // 波形パスアニメーション
-      const p1 = Math.min(40, 40 - (data.metrics.connectedness * 0.35));
-      const p2 = Math.min(40, 40 - (data.metrics.flush_density * 0.35));
-      const peak = Math.min(p1, p2) - 5;
-      
-      document.getElementById('texture-wave-path').setAttribute('d', `M 0,40 C 20,40 30,${p1} 50,${peak} C 70,${p2} 80,40 100,40`);
-      document.getElementById('texture-wave-fill').setAttribute('d', `M 0,40 C 20,40 30,${p1} 50,${peak} C 70,${p2} 80,40 100,40 L 100,40 L 0,40 Z`);
-
-      // RANGE ADVANTAGE BAR
-      document.getElementById('equity-btn-text').innerText = `${data.range_advantage.btn}%`;
-      document.getElementById('equity-btn-bar').style.width = `${data.range_advantage.btn}%`;
-      document.getElementById('equity-bb-text').innerText = `${data.range_advantage.bb}%`;
-      document.getElementById('equity-bb-bar').style.width = `${data.range_advantage.bb}%`;
-
-      // 進捗バー
-      document.getElementById('hud-progress-bar').style.width = `${(data.board.length / 5) * 100}%`;
-
-      // 折れ線グラフヒストリー更新 (BTN / BB 戦略空中戦)
-      btnHistory.push(30 - (data.range_advantage.btn * 0.3));
-      bbHistory.push(30 - (data.range_advantage.bb * 0.3));
-      if (btnHistory.length > 6) btnHistory.shift();
-      if (bbHistory.length > 6) bbHistory.shift();
-
-      let btnPath = "M " + btnHistory.map((val, idx) => `${idx * 25},${val}`).join(" L ");
-      let bbPath = "M " + bbHistory.map((val, idx) => `${idx * 25},${val}`).join(" L ");
-      document.getElementById('graph-btn-line').setAttribute('d', btnPath);
-      document.getElementById('graph-bb-line').setAttribute('d', bbPath);
-
-      // 動的なNuts計算機の呼び出し (ダミー固定ではなく実際のボードから算出)
-      const dynamicNuts = evaluateBoardNuts(data.board);
-      const nutsRanking = document.getElementById('nuts-ranking-list');
-      nutsRanking.innerHTML = '';
-      
-      dynamicNuts.forEach(item => {
-        const row = document.createElement('div');
-        row.className = "flex items-center justify-between text-xs border-b border-[#111c2e] pb-1.5 transition-all duration-300";
-        row.innerHTML = `
-          <div class="flex items-center gap-2">
-            <span class="text-amber-500 font-bold">${item.rank}</span>
-            <span class="text-cyan-400 text-[10px] bg-cyan-950/40 px-1 border border-cyan-800/30 rounded font-bold">${item.eq}%</span>
-            <span class="text-white font-bold tracking-wide">${item.hand}</span>
+      <!-- Placeholder: stylized poker table -->
+      <div id="cam-placeholder">
+        <div id="table-oval">
+          <!-- top player -->
+          <div id="pl-top">
+            <div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div>
+            <div class="pl-chip">D</div>
           </div>
-          <span class="text-[9px] text-[#4a5568] font-bold">${item.desc}</span>
-        `;
-        nutsRanking.appendChild(row);
-      });
+          <!-- left player -->
+          <div id="pl-left">
+            <div class="pl-chip">P1</div>
+            <div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div>
+          </div>
+          <!-- right player -->
+          <div id="pl-right">
+            <div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div>
+            <div class="pl-chip">P3</div>
+          </div>
+          <!-- bottom player -->
+          <div id="pl-bot">
+            <div class="pl-chip">P2</div>
+            <div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div>
+          </div>
+          <!-- Community cards -->
+          <div id="roi-row"></div>
+        </div>
+      </div>
+    </div>
 
-      // 13x13 グリッドとフォーカスホログリッドの同期（差分のみDOM更新して負荷軽減）
-      if (currentHash !== lastCachedHash) {
-        Object.keys(data.heatmap).forEach(key => {
-          const strength = data.heatmap[key];
-          
-          // 通常ミニセル更新
-          const cell = document.getElementById(`cell-${key}`);
-          if (cell) {
-            const oldVal = cell.getAttribute('data-val');
-            if (oldVal !== String(strength)) {
-              const colors = getCellColor(strength, currentHeatmapMode);
-              cell.style.backgroundColor = colors.bg;
-              cell.style.color = colors.text;
-              cell.setAttribute('data-val', strength);
-              cell.title = `${key} [${currentHeatmapMode.toUpperCase()}]: ${strength}%`;
-            }
-          }
+    <!-- Stabilizer -->
+    <div id="stab-bar">
+      <div id="stab-dot" style="background:rgba(0,255,157,.2);"></div>
+      <div id="stab-txt" style="color:rgba(160,200,230,.4);">STABILIZER: WAITING...</div>
+      <div id="stab-conf">CONF: --</div>
+    </div>
+  </div>
 
-          // ホロフォーカスセル更新
-          const holoCell = document.getElementById(`holo-cell-${key}`);
-          if (holoCell) {
-            const oldVal = holoCell.getAttribute('data-val');
-            if (oldVal !== String(strength)) {
-              const colors = getCellColor(strength, currentHeatmapMode);
-              holoCell.style.backgroundColor = colors.bg;
-              holoCell.style.color = colors.text;
-              holoCell.style.borderColor = `${colors.bg}80`;
-              holoCell.setAttribute('data-val', strength);
-              holoCell.title = `${key} [${currentHeatmapMode.toUpperCase()}]: ${strength}%`;
-            }
-          }
-        });
-        lastCachedHash = currentHash;
-      }
+  <!-- RIGHT -->
+  <div class="pnl">
+    <div class="sec">ANALYTICS &amp; HUD</div>
 
-      // 自信度ステータスに応じたUIカラープロジェクション
-      applySystemConfidenceStyles();
-    }
+    <!-- progress -->
+    <div style="height:4px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;flex-shrink:0;">
+      <div id="prog-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#00d4ff,#1a6aff);border-radius:2px;transition:width .7s;box-shadow:0 0 8px rgba(0,212,255,.4);"></div>
+    </div>
 
-    // コンフィデンスの4象限多態デザインの適用
-    function applySystemConfidenceStyles() {
-      const badge = document.getElementById('stabilizer-badge');
-      const dot = document.getElementById('stabilizer-dot');
-      const text = document.getElementById('stabilizer-text');
-      const container = document.getElementById('camera-feed-container');
-      const banner = document.getElementById('system-banner');
-      const statusText = document.getElementById('analyzing-status');
+    <!-- Board texture -->
+    <div style="background:rgba(0,0,0,.3);border:1px solid rgba(0,180,255,.12);border-radius:3px;padding:7px;flex-shrink:0;">
+      <div class="sec" style="border:none;padding:0;margin-bottom:5px;">▐ BOARD TEXTURE</div>
+      <div class="wet-big" id="wet-val">--%</div>
+      <div class="wet-sub" id="wet-lbl">ANALYZING</div>
+      <div style="margin-top:8px;">
+        <div class="metric">
+          <div class="metric-lbl">CONNECTEDNESS</div>
+          <div class="bar-wrap"><div class="bar-fill" id="bar-con" style="width:0%;background:#00d4ff;"></div></div>
+          <div class="metric-val" id="val-con" style="color:#00d4ff;">--%</div>
+        </div>
+        <div class="metric" style="margin-bottom:0;">
+          <div class="metric-lbl">FLUSH DENSITY</div>
+          <div class="bar-wrap"><div class="bar-fill" id="bar-fls" style="width:0%;background:#a855f7;"></div></div>
+          <div class="metric-val" id="val-fls" style="color:#a855f7;">--%</div>
+        </div>
+      </div>
+    </div>
 
-      if (systemState === "LOCKED") {
-        badge.className = "flex items-center justify-center gap-1.5 text-[9px] bg-black/80 border border-emerald-500/30 px-3 py-1 rounded text-emerald-400 font-bold shadow-[0_0_8px_rgba(16,185,129,0.3)] transition-all duration-300";
-        dot.className = "w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping";
-        text.innerText = "STABILIZER LOCKED [OBSERVATION SECURED]";
-        
-        container.className = "flex-1 bg-[#060a12] border border-[#111c2e] rounded relative overflow-hidden flex flex-col shadow-[inset_0_0_30px_rgba(0,0,0,0.8)] min-h-0";
-        banner.className = "bg-gradient-to-r from-[#111c2e] via-[#10305a] to-[#111c2e] px-12 py-1 rounded-md border border-[#1d4ed8]/40 shadow-[0_0_15px_rgba(29,78,216,0.3)] text-white font-bold tracking-widest text-[11px]";
-        statusText.innerHTML = `ANALYZING BOARD... <span class="text-emerald-400 animate-pulse font-bold">LOCKED</span>`;
-      } 
-      else if (systemState === "TRACKING") {
-        badge.className = "flex items-center justify-center gap-1.5 text-[9px] bg-black/80 border border-blue-500/30 px-3 py-1 rounded text-blue-400 font-bold shadow-[0_0_8px_rgba(59,130,246,0.3)] transition-all duration-300";
-        dot.className = "w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse";
-        text.innerText = "OBSERVATION IN PROGRESS [TRACKING INTERFERENCE]";
-        
-        container.className = "flex-1 bg-[#06101c] border border-blue-900/30 rounded relative overflow-hidden flex flex-col shadow-[inset_0_0_30px_rgba(59,130,246,0.2)] min-h-0";
-        banner.className = "bg-gradient-to-r from-[#111c2e] via-[#17253a] to-[#111c2e] px-12 py-1 rounded-md border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)] text-blue-200 font-bold tracking-widest text-[11px]";
-        statusText.innerHTML = `ANALYZING BOARD... <span class="text-blue-400 font-bold">TRACKING</span>`;
-      } 
-      else if (systemState === "UNSTABLE") {
-        badge.className = "flex items-center justify-center gap-1.5 text-[9px] bg-black/80 border border-amber-500/30 px-3 py-1 rounded text-amber-400 font-bold shadow-[0_0_8px_rgba(245,158,11,0.3)] transition-all duration-300";
-        dot.className = "w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse";
-        text.innerText = "WARNING: UNSTABLE PROBABILITY FIELD DETECTED";
-        
-        container.className = "flex-1 bg-[#1a140f] border border-amber-900/40 rounded relative overflow-hidden flex flex-col shadow-[inset_0_0_30px_rgba(245,158,11,0.25)] unstable-flicker min-h-0";
-        banner.className = "bg-gradient-to-r from-[#1a140f] via-[#2d210f] to-[#1a140f] px-12 py-1 rounded-md border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)] text-amber-200 font-bold tracking-widest text-[11px]";
-        statusText.innerHTML = `ANALYZING BOARD... <span class="text-amber-400 font-bold">UNSTABLE</span>`;
-      } 
-      else if (systemState === "LOST") {
-        badge.className = "flex items-center justify-center gap-1.5 text-[9px] bg-red-950/80 border border-red-500/50 px-3 py-1 rounded text-red-400 font-bold shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-all duration-300";
-        dot.className = "w-1.5 h-1.5 bg-red-500 rounded-full animate-ping";
-        text.innerText = "CRITICAL: SELF-CONSISTENCY COLLAPSED (LOST STATE)";
-        
-        container.className = "flex-1 bg-red-950/10 border border-red-900 rounded relative overflow-hidden flex flex-col shadow-[inset_0_0_40px_rgba(239,68,68,0.4)] min-h-0";
-        banner.className = "bg-gradient-to-r from-red-950 via-[#4c1d1d] to-red-950 px-12 py-1 rounded-md border border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] text-red-200 font-bold tracking-widest text-[11px]";
-        statusText.innerHTML = `ANALYZING BOARD... <span class="text-red-500 font-bold">SUSPENDED</span>`;
-      }
-    }
+    <!-- Range advantage -->
+    <div style="background:rgba(0,0,0,.3);border:1px solid rgba(0,180,255,.12);border-radius:3px;padding:7px;flex-shrink:0;">
+      <div class="sec" style="border:none;padding:0;margin-bottom:5px;">▐ RANGE ADVANTAGE <span style="font-size:6px;">(BTN vs BB)</span></div>
+      <div class="range-grid">
+        <div>
+          <div class="range-name" style="color:#ff3b3b;">BTN</div>
+          <div class="bar-wrap"><div class="bar-fill" id="bar-btn" style="width:0%;background:#ff3b3b;"></div></div>
+          <div class="range-val" id="val-btn" style="color:#ff3b3b;">--%</div>
+        </div>
+        <div>
+          <div class="range-name" style="color:#3b82f6;">BB</div>
+          <div class="bar-wrap"><div class="bar-fill" id="bar-bb" style="width:0%;background:#3b82f6;"></div></div>
+          <div class="range-val" id="val-bb" style="color:#60a5fa;">--%</div>
+        </div>
+      </div>
+      <canvas id="sparkline" width="190" height="34" style="width:100%;margin-top:5px;opacity:.7;"></canvas>
+    </div>
 
-    // 4. WebSocket 接続配管の確立 (FastAPIへの接続)
-    function connectBrainServer() {
-      const connDot = document.getElementById('conn-status-dot');
-      const connText = document.getElementById('conn-status-text');
-      
-      socket = new WebSocket("ws://localhost:8000/ws");
+    <!-- Heatmap -->
+    <div class="sec">▐ DYNAMIC HEATMAP</div>
+    <div id="hm-wrap">
+      <div id="hm-grid"></div>
+    </div>
+  </div>
 
-      socket.onopen = () => {
-        connDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-        connText.className = "text-emerald-400 font-bold uppercase";
-        connText.innerText = "CONNECTED";
-        document.getElementById('connection-latency').innerText = "LATENCY: 1ms";
-      };
+</div><!-- /main -->
 
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        updateHUDGraphics(data);
-      };
+<!-- FOOTER -->
+<div id="ftr">
+  <span class="analyzing">● ANALYZING BOARD... LIVE</span>
+  <span id="ftr-hash">HASH: N/A</span>
+  <span>GXIVISION POKER SYSTEM v2.0</span>
+</div>
 
-      socket.onclose = () => {
-        connDot.className = "w-2 h-2 rounded-full bg-red-500 animate-pulse";
-        connText.className = "text-red-400 font-bold uppercase";
-        connText.innerText = "DISCONNECTED (OFFLINE MODE)";
-        
-        // オフラインモックデータのトリガー
-        startOfflineSimulation();
-      };
+<!-- DEMO CONTROLS -->
+<div id="demo-ctrl">
+  <button class="dc-btn street" onclick="setStreet('PREFLOP',0,[])"          >PREFLOP</button>
+  <button class="dc-btn street" onclick="setStreet('FLOP',3,['9c','8c','7d'])">FLOP</button>
+  <button class="dc-btn street" onclick="setStreet('TURN',4,['9c','8c','7d','Jc'])">TURN</button>
+  <button class="dc-btn street" onclick="setStreet('RIVER',5,['9c','8c','7d','Jc','2d'])">RIVER</button>
+  <button class="dc-btn conf"   onclick="cycleConf()"                         id="conf-btn">LOCKED</button>
+</div>
 
-      socket.onerror = (err) => {
-        console.error("SPECTRA Web Socket Error: ", err);
-      };
-    }
+</div><!-- /root -->
 
-    // 5. オフライン動作デモ用フォールバック (サーバー未起動時用)
-    let offlineInterval = null;
-    let mockBoard = ['9c', '8c', '7d'];
-    let mockStreet = "FLOP";
-    
-    function startOfflineSimulation() {
-      if (offlineInterval) clearInterval(offlineInterval);
-      
-      offlineInterval = setInterval(() => {
-        // 時系列確率変動をエミュレートする
-        const fakeWetness = mockStreet === "FLOP" ? 95 : (mockStreet === "TURN" ? 85 : 55);
-        const randSeed = Math.random();
-        
-        const mockPayload = {
-          street: mockStreet,
-          observation_status: systemState,
-          board: mockBoard,
-          metrics: {
-            wetness: fakeWetness + Math.floor(randomVariance() * 3),
-            connectedness: mockStreet === "FLOP" ? 92 : 80,
-            flush_density: mockStreet === "FLOP" ? 85 : 60,
-            board_hash: "9_8_7_Rainbow"
-          },
-          range_advantage: {
-            btn: Math.round(62.0 + randomVariance() * 1.5),
-            bb: Math.round(38.0 - randomVariance() * 1.5)
-          },
-          nuts_ranking: [], // 内部の真のEvaluator側で生成するため空で引き渡す
-          heatmap: generateClientHeatmap()
-        };
+<script>
+/* ═══════════════════════════════════════════════════
+   SPECTRA GXIVISION — UI ENGINE (no WebSocket, no server)
+═══════════════════════════════════════════════════ */
 
-        updateHUDGraphics(mockPayload);
-        renderBoardROIs(mockBoard);
-      }, 1000);
-    }
+const RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
 
-    function randomVariance() {
-      return Math.random() - 0.5;
-    }
+/* ── State ── */
+let S = {
+  street : 'PREFLOP',
+  count  : 0,
+  board  : [],
+  conf   : 'LOCKED',   // LOCKED | TRACKING | UNSTABLE | LOST
+  hm     : [],         // 169 strength values
+};
 
-    // クライアント側でのオフライン用疑似ヒートマップ生成 (評価に連動した分布)
-    function generateClientHeatmap() {
-      const map = {};
-      HANDS_ORDER.forEach((r1, i) => {
-        HANDS_ORDER.forEach((r2, j) => {
-          let strength = 20;
-          if (r1 === r2) {
-            strength = r1 === 'A' || r1 === 'K' || r1 === 'Q' ? 95 : 75;
-          } else if (i < j) {
-            strength = 85 - j * 4;
-            // 9-8-7 フロップに適合するスーテッドコネクターの評価急騰
-            if ((r1 === 'J' && r2 === 'T') || (r1 === 'T' && r2 === '9')) strength += 30;
-          } else {
-            strength = 55 - i * 4;
-          }
-          map[`${r1}${r2}`] = Math.max(5, Math.min(99, strength + Math.floor(Math.random() * 5)));
-        });
-      });
-      return map;
-    }
+const CONF_CYCLE = ['LOCKED','TRACKING','UNSTABLE','LOST'];
+let confIdx = 0;
+function cycleConf(){
+  confIdx=(confIdx+1)%CONF_CYCLE.length;
+  S.conf=CONF_CYCLE[confIdx];
+  document.getElementById('conf-btn').textContent=S.conf;
+  applyConfStyle();
+}
 
-    // デモコントロール関数
-    function setMockBoard(stage) {
-      if (stage === 'flop') {
-        mockBoard = ['9c', '8c', '7d'];
-        mockStreet = "FLOP";
-      } else if (stage === 'turn') {
-        mockBoard = ['9c', '8c', '7d', 'Jc'];
-        mockStreet = "TURN";
-      } else if (stage === 'river') {
-        mockBoard = ['9c', '8c', '7d', 'Jc', '2d'];
-        mockStreet = "RIVER";
-      }
-      
-      // サーバー接続時はサーバーへ送信
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({
-          command: "SET_BOARD",
-          board: mockBoard,
-          street: mockStreet
-        }));
-      } else {
-        renderBoardROIs(mockBoard);
-      }
-    }
+/* ══════════════════════════════
+   HEATMAP BUILD
+══════════════════════════════ */
+function buildHeatmap(){
+  const grid = document.getElementById('hm-grid');
+  grid.innerHTML='';
 
-    // システム状態パラメータの手動インジェクション
-    function setSystemConfidence(state) {
-      systemState = state;
-      applySystemConfidenceStyles();
-    }
-
-    // 呼出しオーバーレイ開閉スイッチ（ホログラフィック・フォーカス・HUD）
-    function toggleOverlayMap() {
-      const overlay = document.getElementById('holo-overlay');
-      isOverlayOpen = !isOverlayOpen;
-      
-      if (isOverlayOpen) {
-        overlay.classList.remove('hidden');
-        overlay.classList.add('flex');
-      } else {
-        overlay.classList.remove('flex');
-        overlay.classList.add('hidden');
-      }
-      lastCachedHash = ""; // 描画差分フラグを強制クリアして即時再描画
-    }
-
-    // キーボードショートカット連動（Spaceキーでフォーカスマップの切り替え）
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space') {
-        e.preventDefault(); // スクロール等の標準ブラウザ挙動をブロッキング
-        toggleOverlayMap();
-      }
+  /* corner blank */
+  const corner=document.createElement('div'); corner.className='hm-hdr'; grid.appendChild(corner);
+  /* column headers */
+  RANKS.forEach(r=>{
+    const h=document.createElement('div'); h.className='hm-hdr'; h.textContent=r; grid.appendChild(h);
+  });
+  /* rows */
+  RANKS.forEach((r1,i)=>{
+    /* row header */
+    const rh=document.createElement('div'); rh.className='hm-hdr'; rh.textContent=r1; grid.appendChild(rh);
+    /* cells */
+    RANKS.forEach((r2,j)=>{
+      const lbl = i===j ? r1+r2 : (i<j ? r1+r2+'s' : r2+r1+'o');
+      const c=document.createElement('div');
+      c.className='hm-c'; c.id='hc'+(i*13+j);
+      c.title=lbl; c.textContent=lbl.slice(0,2);
+      c.style.backgroundColor='#0d1a2a';
+      grid.appendChild(c);
     });
+  });
+}
 
-    // ヒートマップの表示モード切り替え（Absolute vs Spectral）
-    function toggleHeatmapMode(mode) {
-      currentHeatmapMode = mode;
-      
-      const btnSpectral = document.getElementById('btn-mode-spectral');
-      const btnAbsolute = document.getElementById('btn-mode-absolute');
+function strengthColor(v){
+  if(v>=80)return'#b91c1c';
+  if(v>=60)return'#c2410c';
+  if(v>=40)return'#ca8a04';
+  if(v>=20)return'#15803d';
+  if(v> 0)return'#0e7490';
+  return'#0d1a2a';
+}
 
-      if (mode === 'spectral') {
-        btnSpectral.className = "px-1.5 py-0.5 rounded text-[8px] font-bold bg-[#1d4ed8] text-white tracking-wider";
-        btnAbsolute.className = "px-1.5 py-0.5 rounded text-[8px] font-bold bg-[#111c2e] text-[#a0aec0] tracking-wider";
-      } else {
-        btnAbsolute.className = "px-1.5 py-0.5 rounded text-[8px] font-bold bg-[#1d4ed8] text-white tracking-wider";
-        btnSpectral.className = "px-1.5 py-0.5 rounded text-[8px] font-bold bg-[#111c2e] text-[#a0aec0] tracking-wider";
-      }
-      
-      lastCachedHash = ""; // キャッシュパージ
+function genHeatmapData(street,board){
+  const data=[];
+  for(let i=0;i<13;i++) for(let j=0;j<13;j++){
+    const isPair=i===j, isSuited=i<j;
+    const rankMax=Math.max(13-i,13-j), rankSum=(13-i)+(13-j);
+    let v=0;
+    if(street==='PREFLOP'){
+      v=isPair?60+rankMax*3:isSuited?30+rankSum*1.5:20+rankSum;
+    } else if(street==='FLOP'){
+      const gap=13-Math.abs(i-j);
+      v=isPair?55+rankMax*2.5:isSuited?gap*5+rankMax*2:gap*3+rankMax;
+      v+=Math.random()*14-7;
+    } else if(street==='TURN'){
+      const gap=13-Math.abs(i-j);
+      v=isPair?60+rankMax*2:isSuited?gap*6+rankMax*2.5:gap*2+rankMax;
+      v+=Math.random()*10-5;
+    } else {
+      v=isPair?50+rankMax*3:isSuited&&Math.abs(i-j)<3?rankSum*3:Math.max(0,rankMax*2-10);
+      v+=Math.random()*7-3.5;
     }
+    data.push(Math.min(100,Math.max(0,Math.round(v))));
+  }
+  return data;
+}
 
-    // クロック表示の定期更新
-    setInterval(() => {
-      const now = new Date();
-      document.getElementById('time-display').innerText = now.toTimeString().split(' ')[0];
-      document.getElementById('fps-display').innerText = `FPS: ${Math.floor(28 + Math.random() * 3)}`;
-    }, 1000);
+function renderHeatmap(data,animate){
+  data.forEach((v,idx)=>{
+    const c=document.getElementById('hc'+idx);
+    if(!c)return;
+    if(animate){setTimeout(()=>{c.style.backgroundColor=strengthColor(v);},Math.random()*280|0);}
+    else{c.style.backgroundColor=strengthColor(v);}
+  });
+}
 
-    // 起動
-    window.onload = () => {
-      lucide.createIcons();
-      buildHeatmapSkeleton();
-      renderBoardROIs(mockBoard);
-      connectBrainServer(); // WebSocket接続試行
-    };
-  </script>
+/* ══════════════════════════════
+   NUTS RANKING
+══════════════════════════════ */
+const NUTS={
+  PREFLOP:[
+    {hand:'AA', eq:'85.2',type:'プレミアム'},
+    {hand:'KK', eq:'82.4',type:'プレミアム'},
+    {hand:'QQ', eq:'79.9',type:'プレミアム'},
+    {hand:'AKs',eq:'67.0',type:'スーテッド'},
+    {hand:'JJ', eq:'77.5',type:'プレミアム'},
+  ],
+  FLOP:[
+    {hand:'JTo',eq:'98.7',type:'ストレート'},
+    {hand:'99', eq:'99.7',type:'セット'},
+    {hand:'88', eq:'97.1',type:'セット'},
+    {hand:'T9s',eq:'89.4',type:'ストレート'},
+    {hand:'AcKc',eq:'85.6',type:'ストレート'},
+  ],
+  TURN:[
+    {hand:'JTo',eq:'99.1',type:'ストレート確定'},
+    {hand:'99', eq:'98.3',type:'セット強化'},
+    {hand:'AcKc',eq:'92.0',type:'フラッシュドロー'},
+    {hand:'88', eq:'88.5',type:'SET'},
+    {hand:'T9s',eq:'87.0',type:'ストレート'},
+  ],
+  RIVER:[
+    {hand:'JTo',eq:'99.8',type:'NUTS'},
+    {hand:'99', eq:'98.9',type:'セット'},
+    {hand:'AcKc',eq:'97.2',type:'フラッシュ'},
+    {hand:'88', eq:'94.0',type:'SET'},
+    {hand:'KTo',eq:'85.0',type:'Bluff Catcher'},
+  ],
+};
+function renderNuts(street){
+  const list=NUTS[street]||NUTS.PREFLOP;
+  document.getElementById('nuts-list').innerHTML=list.map((x,i)=>`
+    <div class="nuts-row">
+      <div class="n-rank">${i+1}</div>
+      <div class="n-eq">${x.eq}%</div>
+      <div class="n-hand">${x.hand}</div>
+      <div class="n-type">${x.type}</div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════
+   ROI CARDS (center)
+══════════════════════════════ */
+const SUIT_SYMBOL={'c':'♣','d':'♦','h':'♥','s':'♠'};
+const SUIT_CLASS  ={'c':'suit-c','d':'suit-d','h':'suit-h','s':'suit-s'};
+
+function renderROI(board){
+  const row=document.getElementById('roi-row');
+  row.innerHTML='';
+  for(let i=0;i<5;i++){
+    const slot=document.createElement('div'); slot.className='roi-slot';
+    const lbl=document.createElement('div'); lbl.className='roi-lbl'; lbl.textContent='ROI '+(i+1);
+    const card=document.createElement('div');
+    if(i<board.length){
+      const raw=board[i];
+      const rank=raw[0].toUpperCase();
+      const suit=raw[1];
+      const sym=SUIT_SYMBOL[suit]||'';
+      const cls=SUIT_CLASS[suit]||'';
+      card.className='roi-card';
+      card.innerHTML=`
+        <div class="card-inner">
+          <span class="card-rank-tl ${cls}">${rank}</span>
+          <span class="card-suit-center ${cls}">${sym}</span>
+        </div>`;
+    } else {
+      card.className='roi-card waiting';
+      card.innerHTML=`<div class="roi-wait-txt">[WAITING]</div>`;
+    }
+    slot.appendChild(lbl);
+    slot.appendChild(card);
+    /* status label under card */
+    if(i<board.length){
+      const st=document.createElement('div'); st.className='roi-status';
+      st.textContent='LOCKED ✓'; slot.appendChild(st);
+    }
+    row.appendChild(slot);
+  }
+}
+
+/* ══════════════════════════════
+   ANALYTICS
+══════════════════════════════ */
+const ANA={
+  PREFLOP:{wet:'--',lbl:'ANALYZING',con:0,fls:0,btn:50,bb:50},
+  FLOP:   {wet:'95%',lbl:'VERY WET', con:92,fls:85,btn:62,bb:38},
+  TURN:   {wet:'87%',lbl:'WET',      con:88,fls:82,btn:58,bb:42},
+  RIVER:  {wet:'71%',lbl:'SEMI-WET', con:70,fls:78,btn:55,bb:45},
+};
+let spkBTN=[15,15,15,15,15], spkBB=[15,15,15,15,15];
+
+function renderAnalytics(street,count){
+  const d=ANA[street]||ANA.PREFLOP;
+  document.getElementById('wet-val').textContent=d.wet;
+  document.getElementById('wet-lbl').textContent=d.lbl;
+  document.getElementById('bar-con').style.width=d.con+'%';
+  document.getElementById('val-con').textContent=d.con?d.con+'%':'--%';
+  document.getElementById('bar-fls').style.width=d.fls+'%';
+  document.getElementById('val-fls').textContent=d.fls?d.fls+'%':'--%';
+  document.getElementById('bar-btn').style.width=d.btn+'%';
+  document.getElementById('val-btn').textContent=d.btn?d.btn+'%':'--%';
+  document.getElementById('bar-bb').style.width=d.bb+'%';
+  document.getElementById('val-bb').textContent=d.bb?d.bb+'%':'--%';
+  document.getElementById('prog-bar').style.width=(count/5*100)+'%';
+  /* sparkline */
+  spkBTN.push(30-d.btn*.28); spkBTN.shift();
+  spkBB.push(30-d.bb*.28);   spkBB.shift();
+  drawSparkline();
+}
+
+function drawSparkline(){
+  const cv=document.getElementById('sparkline');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const draw=(pts,col)=>{
+    ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=1.5;
+    pts.forEach((y,x)=>x===0?ctx.moveTo(x*(W/4),y*(H/30)):ctx.lineTo(x*(W/4),y*(H/30)));
+    ctx.stroke();
+  };
+  draw(spkBTN,'#ff3b3b'); draw(spkBB,'#3b82f6');
+}
+
+/* ══════════════════════════════
+   STABILIZER STYLE
+══════════════════════════════ */
+function applyConfStyle(){
+  const dot=document.getElementById('stab-dot');
+  const txt=document.getElementById('stab-txt');
+  const conf=S.conf;
+  const styles={
+    LOCKED:  {dc:'#00ff9d',tc:'#00ff9d',msg:'STABILIZER LOCKED [CONFIRMED 3 FRAME]'},
+    TRACKING:{dc:'#00d4ff',tc:'#00d4ff',msg:'OBSERVATION IN PROGRESS [TRACKING]'},
+    UNSTABLE:{dc:'#ffb800',tc:'#ffb800',msg:'WARNING: UNSTABLE PROBABILITY FIELD'},
+    LOST:    {dc:'#ff3b3b',tc:'#ff3b3b',msg:'CRITICAL: SELF-CONSISTENCY COLLAPSED'},
+  };
+  const st=styles[conf]||styles.LOCKED;
+  dot.style.background=st.dc;
+  dot.style.boxShadow=`0 0 8px ${st.dc}`;
+  txt.style.color=st.tc;
+  txt.textContent=st.msg;
+  document.getElementById('stab-conf').textContent='CONF: '+(conf==='LOCKED'?'0.97':conf==='TRACKING'?'0.71':conf==='UNSTABLE'?'0.34':'0.00');
+}
+
+/* ══════════════════════════════
+   STREET TRANSITION
+══════════════════════════════ */
+const STREET_COLOR={PREFLOP:'#00d4ff',FLOP:'#00ff9d',TURN:'#ffb800',RIVER:'#ff3b3b'};
+
+function setStreet(street,count,board){
+  S.street=street; S.count=count; S.board=board;
+
+  /* street indicator */
+  const sn=document.getElementById('street-name');
+  sn.textContent=street;
+  sn.style.color=STREET_COLOR[street];
+  sn.style.textShadow=`0 0 20px ${STREET_COLOR[street]}`;
+  document.getElementById('street-cnt').textContent=count+' / 5';
+
+  /* board hash */
+  const hash=board.length?board.join(' ').toUpperCase():'--';
+  document.getElementById('board-hash').textContent='BOARD: '+hash;
+  document.getElementById('ftr-hash').textContent='HASH: '+hash;
+
+  /* sub-systems */
+  renderNuts(street);
+  renderROI(board);
+  renderAnalytics(street,count);
+
+  /* heatmap */
+  const data=genHeatmapData(street,board);
+  S.hm=data;
+  renderHeatmap(data,true);
+}
+
+/* ══════════════════════════════
+   CLOCK / FPS
+══════════════════════════════ */
+setInterval(()=>{
+  const n=new Date();
+  document.getElementById('time-d').textContent=
+    String(n.getHours()).padStart(2,'0')+':'+
+    String(n.getMinutes()).padStart(2,'0')+':'+
+    String(n.getSeconds()).padStart(2,'0');
+  document.getElementById('fps-d').textContent='FPS: '+(28+Math.floor(Math.random()*4));
+},1000);
+
+/* ══════════════════════════════
+   CAMERA (optional)
+══════════════════════════════ */
+async function tryCamera(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    const v=document.getElementById('cam-video');
+    v.srcObject=stream; v.style.display='block';
+    document.getElementById('cam-placeholder').style.display='none';
+  }catch(e){/* no camera — placeholder stays */}
+}
+tryCamera();
+
+/* ══════════════════════════════
+   BOOT
+══════════════════════════════ */
+buildHeatmap();
+setStreet('FLOP',3,['9c','8c','7d']); // default demo state
+applyConfStyle();
+</script>
 </body>
 </html>
