@@ -1,1 +1,547 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPECTRA — JS/Pyodide Standalone</title>
 
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+
+  <style>
+    body { background: #070b12; color: white; }
+    #heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(14, 1fr);
+      gap: 1px;
+    }
+  </style>
+</head>
+
+
+<body class="p-4">
+
+<!-- ===== HUD LAYOUT START ===== -->
+
+<div class="grid grid-cols-3 gap-4">
+
+  <!-- LEFT PANEL -->
+  <div class="space-y-4">
+
+    <!-- Connection Status -->
+    <div class="flex items-center gap-2">
+      <div id="conn-status-dot" class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+      <div id="conn-status-text" class="text-red-400 font-bold uppercase text-xs">OFFLINE</div>
+      <div id="connection-latency" class="text-[10px] text-slate-500 ml-2">LATENCY: --</div>
+    </div>
+
+    <!-- Stabilizer -->
+    <div id="stabilizer-badge"
+      class="flex items-center justify-center gap-1.5 text-[9px] bg-black/80 border border-red-500/30 px-3 py-1 rounded text-red-400 font-bold shadow-[0_0_8px_rgba(239,68,68,0.3)]">
+      <div id="stabilizer-dot" class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
+      <span id="stabilizer-text">WAITING FOR SIGNAL</span>
+    </div>
+
+    <!-- Analyzing Status -->
+    <div id="analyzing-status" class="text-[10px] text-slate-400">
+      ANALYZING BOARD... <span class="text-red-400 font-bold">SUSPENDED</span>
+    </div>
+
+    <!-- Time / FPS -->
+    <div class="flex items-center gap-4 text-xs text-slate-500">
+      <span id="time-display">--:--:--</span>
+      <span id="fps-display">FPS: --</span>
+    </div>
+
+    <!-- Board ROI -->
+    <div>
+      <h2 class="text-xs text-slate-400 mb-1">BOARD</h2>
+      <div id="board-roi-container" class="flex gap-3"></div>
+    </div>
+
+  </div>
+
+  <!-- CENTER PANEL -->
+  <div class="space-y-4">
+
+    <!-- Street -->
+    <div class="flex items-center justify-between">
+      <div class="text-lg font-bold" id="street-title">FLOP</div>
+      <div class="text-xs text-slate-400" id="street-cards-count">3 / 5</div>
+    </div>
+
+    <!-- Progress -->
+    <div class="w-full h-1 bg-slate-800 rounded">
+      <div id="hud-progress-bar" class="h-1 bg-emerald-500 rounded transition-all duration-300" style="width: 60%;"></div>
+    </div>
+
+    <!-- Texture -->
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-slate-400">BOARD TEXTURE</span>
+        <span id="texture-wet-label" class="text-[10px] text-emerald-500 font-bold">DRY</span>
+      </div>
+
+      <div class="flex items-center gap-4 text-xs">
+        <div>WET: <span id="texture-wet-percentage">0%</span></div>
+        <div>CONNECTED: <span id="texture-connectedness">0%</span></div>
+        <div>FLUSH: <span id="texture-flush">0%</span></div>
+      </div>
+
+      <!-- Wave -->
+      <svg width="100%" height="40">
+        <path id="texture-wave-fill" fill="rgba(16,185,129,0.2)" d=""></path>
+        <path id="texture-wave-path" stroke="#10b981" stroke-width="2" fill="none" d=""></path>
+      </svg>
+    </div>
+
+    <!-- Range Advantage -->
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-slate-400">RANGE ADVANTAGE</span>
+      </div>
+
+      <div class="text-xs">BTN: <span id="equity-btn-text">--%</span></div>
+      <div class="w-full h-1 bg-slate-800 rounded">
+        <div id="equity-btn-bar" class="h-1 bg-cyan-500 rounded"></div>
+      </div>
+
+      <div class="text-xs">BB: <span id="equity-bb-text">--%</span></div>
+      <div class="w-full h-1 bg-slate-800 rounded">
+        <div id="equity-bb-bar" class="h-1 bg-amber-500 rounded"></div>
+      </div>
+
+      <!-- Graph -->
+      <svg width="150" height="40">
+        <path id="graph-btn-line" stroke="#06b6d4" stroke-width="2" fill="none"></path>
+        <path id="graph-bb-line" stroke="#f59e0b" stroke-width="2" fill="none"></path>
+      </svg>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="space-y-4">
+
+    <!-- Nuts Ranking -->
+    <div>
+      <h2 class="text-xs text-slate-400 mb-1">NUTS RANKING</h2>
+      <div id="nuts-ranking-list" class="space-y-1"></div>
+    </div>
+
+    <!-- Heatmap -->
+    <div>
+      <h2 class="text-xs text-slate-400 mb-1">RANGE HEATMAP</h2>
+      <div id="heatmap-grid"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ===== HUD LAYOUT END ===== -->
+<script>
+/* ============================================================
+   SPECTRA — Pyodide Standalone Brain
+   ============================================================ */
+
+const HANDS_ORDER = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+let btnHistory = [15,15,15,15,15];
+let bbHistory = [15,15,15,15,15];
+
+let pyodide = null;
+let mockBoard = ['9c','8c','7d'];
+let mockStreet = 'FLOP';
+
+/* -------------------------------
+   Pyodide 初期化
+-------------------------------- */
+async function initPyodideAndBrain() {
+  pyodide = await loadPyodide();
+
+  await pyodide.runPythonAsync(`
+HANDS_ORDER = ['A','K','Q','J','T','9','8','7','6','5','4','3','2']
+
+def calculate_wetness_and_texture(board):
+    if not board:
+        return {"wetness":0,"connectedness":0,"flush_density":0,"hash":"PREFLOP"}
+
+    rank_values={'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'T':10,'J':11,'Q':12,'K':13,'A':14}
+    ranks=sorted(list(set([rank_values[c[0]] for c in board])))
+    suits=[c[1] for c in board]
+
+    connectedness=0
+    if len(ranks)>=2:
+        diffs=[ranks[i+1]-ranks[i] for i in range(len(ranks)-1)]
+        close_count=sum(1 for d in diffs if d<=2)
+        connectedness=min(100,int((close_count/max(1,len(board)-1))*100))
+        if len(ranks)>=3:
+            for i in range(len(ranks)-2):
+                if ranks[i+2]-ranks[i] <= 4:
+                    connectedness=max(connectedness,90)
+
+    suit_counts={s:suits.count(s) for s in set(suits)}
+    max_suit_cnt=max(suit_counts.values()) if suit_counts else 0
+    flush_density=min(100,int((max_suit_cnt/len(board))*100)) if board else 0
+    if max_suit_cnt>=3:
+        flush_density=max(flush_density,95)
+
+    wetness=int((connectedness*0.5)+(flush_density*0.5))
+    if len(board)<3:
+        wetness=10
+
+    rank_str="_".join([c[0] for c in board])
+    suit_structure="Rainbow" if max_suit_cnt<=1 else f"{max_suit_cnt}Tone"
+
+    return {
+        "wetness":wetness,
+        "connectedness":connectedness,
+        "flush_density":flush_density,
+        "hash":f"{rank_str}_{suit_structure}"
+    }
+
+def generate_dynamic_heatmap(board):
+    matrix={}
+    rank_vals={'A':14,'K':13,'Q':12,'J':11,'T':10,'9':9,'8':8,'7':7,'6':6,'5':5,'4':4,'3':3,'2':2}
+    board_ranks=[c[0] for c in board]
+    board_suits=[c[1] for c in board]
+    texture=calculate_wetness_and_texture(board)
+    wetness=texture["wetness"]
+
+    for i,r1 in enumerate(HANDS_ORDER):
+        for j,r2 in enumerate(HANDS_ORDER):
+            key=f"{r1}{r2}"
+            is_pair=(r1==r2)
+            is_suited=(i<j)
+            base=100-(i+j)*4
+            if is_pair:
+                base+=25
+
+            match_factor=1.0
+            hit_r1=(r1 in board_ranks)
+            hit_r2=(r2 in board_ranks)
+
+            if is_pair and hit_r1:
+                match_factor+=1.8
+            elif hit_r1 or hit_r2:
+                match_factor+=1.3
+
+            if not is_pair:
+                v1,v2=rank_vals[r1],rank_vals[r2]
+                if abs(v1-v2)==1:
+                    match_factor+=0.4*(wetness/100.0)
+
+            if is_suited:
+                max_suit_count=0
+                for s in set(board_suits):
+                    cnt=board_suits.count(s)
+                    if cnt>max_suit_count:
+                        max_suit_count=cnt
+                if max_suit_count>=2:
+                    match_factor+=0.5*max_suit_count
+
+            val=int(base*match_factor)
+            val=max(5,min(99,val))
+            matrix[key]=val
+
+    return matrix
+
+def generate_spectra_payload(board,street):
+    texture=calculate_wetness_and_texture(board)
+    heatmap=generate_dynamic_heatmap(board)
+    btn_equity=62.0
+    bb_equity=100.0-btn_equity
+
+    return {
+        "street":street,
+        "observation_status":"LOCKED",
+        "confidence":0.95,
+        "board":board,
+        "metrics":{
+            "wetness":texture["wetness"],
+            "connectedness":texture["connectedness"],
+            "flush_density":texture["flush_density"],
+            "board_hash":texture["hash"]
+        },
+        "range_advantage":{
+            "btn":round(btn_equity,1),
+            "bb":round(bb_equity,1)
+        },
+        "heatmap":heatmap,
+        "nuts_ranking":[
+            {"rank":1,"hand":"JTo","desc":"(セット)","eq":"98.7"},
+            {"rank":2,"hand":"99","desc":"(セット)","eq":"98.7"},
+            {"rank":3,"hand":"88","desc":"(ペア)","eq":"97.1"},
+            {"rank":4,"hand":"T9s","desc":"(ストレート)","eq":"89.4"},
+            {"rank":5,"hand":"AcKc","desc":"(ストレート)","eq":"85.6"}
+        ]
+    }
+`);
+}
+
+/* ============================================================
+   Heatmap / HUD Rendering
+============================================================ */
+
+function buildHeatmapSkeleton() {
+  const grid = document.getElementById("heatmap-grid");
+  grid.innerHTML = "";
+
+  const empty = document.createElement("div");
+  grid.appendChild(empty);
+
+  HANDS_ORDER.forEach(h => {
+    const header = document.createElement("div");
+    header.className = "text-center text-[7px] text-[#4a5568] font-bold";
+    header.innerText = h;
+    grid.appendChild(header);
+  });
+
+  HANDS_ORDER.forEach((r1,i)=>{
+    const rowHeader=document.createElement("div");
+    rowHeader.className="text-center text-[7px] text-[#4a5568] font-bold";
+    rowHeader.innerText=r1;
+    grid.appendChild(rowHeader);
+
+    HANDS_ORDER.forEach((r2,j)=>{
+      const cell=document.createElement("div");
+      cell.id=`cell-${r1}${r2}`;
+      cell.className="aspect-square rounded-[1px] flex items-center justify-center text-[5px] font-bold bg-[#152e1c] text-[#2f5a38]";
+      cell.innerText=`${r1}${r2}`;
+      grid.appendChild(cell);
+    });
+  });
+}
+
+function getCellColorClass(val){
+  if(val>=80) return {bg:"#922b21",text:"#fecaca"};
+  if(val>=60) return {bg:"#b05a1a",text:"#fef3c7"};
+  if(val>=40) return {bg:"#bda110",text:"#fef9c3"};
+  if(val>=20) return {bg:"#277432",text:"#d1fae5"};
+  return {bg:"#152e1c",text:"#2f5a38"};
+}
+
+/* ============================================================
+   Board ROI Rendering
+============================================================ */
+
+function renderBoardROIs(boardCards){
+  const container=document.getElementById("board-roi-container");
+  container.innerHTML="";
+
+  const suitsMap={'s':'♠','h':'♥','d':'♦','c':'♣'};
+  const colorsMap={'s':'text-slate-300','h':'text-red-500','d':'text-red-500','c':'text-emerald-500'};
+
+  for(let i=1;i<=5;i++){
+    const cardStr=boardCards[i-1];
+    const item=document.createElement("div");
+    item.className="flex flex-col items-center gap-1";
+
+    const label=document.createElement("span");
+    label.className="text-[9px] font-bold text-emerald-400";
+    label.innerText=`ROI ${i}`;
+    item.appendChild(label);
+
+    const cardRect=document.createElement("div");
+
+    if(cardStr){
+      const rank=cardStr[0].toUpperCase();
+      const suit=suitsMap[cardStr[1]];
+      const color=colorsMap[cardStr[1]];
+
+      cardRect.className="w-12 h-16 rounded border border-emerald-500 bg-black/60 flex items-center justify-center";
+      cardRect.innerHTML=`
+        <div class="bg-white w-[92%] h-[92%] rounded text-black font-bold flex flex-col items-center justify-center">
+          <span class="text-xs self-start ml-1">${rank}</span>
+          <span class="text-lg ${color}">${suit}</span>
+        </div>`;
+    } else {
+      cardRect.className="w-12 h-16 rounded border border-slate-700 border-dashed bg-black/60 flex items-center justify-center";
+      cardRect.innerHTML='<span class="text-[8px] text-slate-600 font-bold animate-pulse">WAIT</span>';
+    }
+
+    item.appendChild(cardRect);
+    container.appendChild(item);
+  }
+}
+
+/* ============================================================
+   HUD Update
+============================================================ */
+
+function updateHUDGraphics(data){
+  document.getElementById("street-title").innerText=data.street;
+  document.getElementById("street-cards-count").innerText=`${data.board.length} / 5`;
+
+  const wet=data.metrics.wetness;
+  const wetLabel=document.getElementById("texture-wet-label");
+  document.getElementById("texture-wet-percentage").innerText=`${wet}%`;
+
+  if(wet>=80){
+    wetLabel.innerText="VERY WET";
+    wetLabel.className="text-[10px] text-red-500 font-bold animate-pulse";
+  } else if(wet>=50){
+    wetLabel.innerText="WET";
+    wetLabel.className="text-[10px] text-amber-500 font-bold";
+  } else {
+    wetLabel.innerText="DRY";
+    wetLabel.className="text-[10px] text-emerald-500 font-bold";
+  }
+
+  document.getElementById("texture-connectedness").innerText=`${data.metrics.connectedness}%`;
+  document.getElementById("texture-flush").innerText=`${data.metrics.flush_density}%`;
+
+  const p1=Math.min(40,40-(data.metrics.connectedness*0.35));
+  const p2=Math.min(40,40-(data.metrics.flush_density*0.35));
+  const peak=Math.min(p1,p2)-5;
+
+  document.getElementById("texture-wave-path").setAttribute("d",`M 0,40 C 20,40 30,${p1} 50,${peak} C 70,${p2} 80,40 100,40`);
+  document.getElementById("texture-wave-fill").setAttribute("d",`M 0,40 C 20,40 30,${p1} 50,${peak} C 70,${p2} 80,40 100,40 L 100,40 L 0,40 Z`);
+
+  document.getElementById("equity-btn-text").innerText=`${data.range_advantage.btn}%`;
+  document.getElementById("equity-btn-bar").style.width=`${data.range_advantage.btn}%`;
+
+  document.getElementById("equity-bb-text").innerText=`${data.range_advantage.bb}%`;
+  document.getElementById("equity-bb-bar").style.width=`${data.range_advantage.bb}%`;
+
+  document.getElementById("hud-progress-bar").style.width=`${(data.board.length/5)*100}%`;
+
+  btnHistory.push(30-(data.range_advantage.btn*0.3));
+  bbHistory.push(30-(data.range_advantage.bb*0.3));
+  if(btnHistory.length>6) btnHistory.shift();
+  if(bbHistory.length>6) bbHistory.shift();
+
+  let btnPath="M "+btnHistory.map((v,i)=>`${i*25},${v}`).join(" L ");
+  let bbPath="M "+bbHistory.map((v,i)=>`${i*25},${v}`).join(" L ");
+
+  document.getElementById("graph-btn-line").setAttribute("d",btnPath);
+  document.getElementById("graph-bb-line").setAttribute("d",bbPath);
+
+  const nuts=document.getElementById("nuts-ranking-list");
+  nuts.innerHTML="";
+  data.nuts_ranking.forEach(item=>{
+    const row=document.createElement("div");
+    row.className="flex items-center justify-between text-xs border-b border-[#111c2e] pb-1.5";
+    row.innerHTML=`
+      <div class="flex items-center gap-2">
+        <span class="text-amber-500 font-bold">${item.rank}</span>
+        <span class="text-cyan-400 text-[10px] bg-cyan-950/40 px-1 border border-cyan-800/30 rounded">${item.eq}%</span>
+        <span class="text-white font-bold">${item.hand}</span>
+      </div>
+      <span class="text-[9px] text-[#4a5568]">${item.desc}</span>
+    `;
+    nuts.appendChild(row);
+  });
+
+  Object.keys(data.heatmap).forEach(key=>{
+    const val=data.heatmap[key];
+    const cell=document.getElementById(`cell-${key}`);
+    if(cell){
+      const c=getCellColorClass(val);
+      cell.style.backgroundColor=c.bg;
+      cell.style.color=c.text;
+      cell.title=`${key}: ${val}%`;
+    }
+  });
+
+  const badge=document.getElementById("stabilizer-badge");
+  const dot=document.getElementById("stabilizer-dot");
+  const text=document.getElementById("stabilizer-text");
+
+  if(data.observation_status==="LOCKED"){
+    badge.className="flex items-center justify-center gap-1.5 text-[9px] bg-black/80 border border-emerald-500/30 px-3 py-1 rounded text-emerald-400 font-bold";
+    dot.className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping";
+    text.innerText=`STABILIZER LOCKED [CONFIRMED ${data.board.length} CARDS]`;
+    document.getElementById("analyzing-status").innerHTML='ANALYZING BOARD... <span class="text-emerald-400 font-bold">LIVE</span>';
+  } else {
+    badge.className="flex items-center justify-center gap-1.5 text-[9px] bg-red-950/80 border border-red-500/50 px-3 py-1 rounded text-red-400 font-bold";
+    dot.className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse";
+    text.innerText="WARNING: OCCLUSION DETECTED";
+    document.getElementById("analyzing-status").innerHTML='ANALYZING BOARD... <span class="text-red-400 font-bold">SUSPENDED</span>';
+  }
+}
+
+/* ============================================================
+   Local Brain Loop
+============================================================ */
+
+async function startLocalSpectraLoop(){
+  setInterval(async ()=>{
+    if(!pyodide) return;
+
+    pyodide.globals.set("js_board",mockBoard);
+    pyodide.globals.set("js_street",mockStreet);
+
+    await pyodide.runPythonAsync(`
+board=list(js_board)
+street=js_street
+result=generate_spectra_payload(board,street)
+    `);
+
+    const data=pyodide.globals.get("result").toJs();
+    updateHUDGraphics(data);
+    renderBoardROIs(mockBoard);
+  },1000);
+}
+
+/* ============================================================
+   Mock Buttons
+============================================================ */
+
+function setMockBoard(stage){
+  if(stage==="flop"){
+    mockBoard=['9c','8c','7d'];
+    mockStreet='FLOP';
+  } else if(stage==="turn"){
+    mockBoard=['9c','8c','7d','Jc'];
+    mockStreet='TURN';
+  } else if(stage==="river"){
+    mockBoard=['9c','8c','7d','Jc','2d'];
+    mockStreet='RIVER';
+  }
+  renderBoardROIs(mockBoard);
+}
+
+function simulateShadowOcclusion(){
+  const badge=document.getElementById("stabilizer-badge");
+  const text=document.getElementById("stabilizer-text");
+  badge.className="flex items-center justify-center gap-1.5 text-[9px] bg-red-950/80 border border-red-500/50 px-3 py-1 rounded text-red-400 font-bold";
+  text.innerText="WARNING: OCCLUSION DETECTED";
+}
+
+/* ============================================================
+   Clock / FPS
+============================================================ */
+
+setInterval(()=>{
+  const now=new Date();
+  document.getElementById("time-display").innerText=now.toTimeString().split(" ")[0];
+  document.getElementById("fps-display").innerText=`FPS: ${Math.floor(28+Math.random()*3)}`;
+},1000);
+
+/* ============================================================
+   Window Onload
+============================================================ */
+
+window.onload=async()=>{
+  lucide.createIcons();
+  buildHeatmapSkeleton();
+  renderBoardROIs(mockBoard);
+
+  document.getElementById("conn-status-dot").className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+  document.getElementById("conn-status-text").innerText="LOCAL BRAIN";
+  document.getElementById("conn-status-text").className="text-emerald-400 font-bold uppercase";
+  document.getElementById("connection-latency").innerText="LATENCY: 0ms";
+
+  await initPyodideAndBrain();
+  startLocalSpectraLoop();
+};
+</script>
+</body>
+</html>
