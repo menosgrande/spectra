@@ -23,11 +23,7 @@
     }
   </style>
 </head>
-
-
 <body class="p-4">
-
-<!-- ===== HUD LAYOUT START ===== -->
 
 <div class="grid grid-cols-3 gap-4">
 
@@ -63,6 +59,25 @@
     <div>
       <h2 class="text-xs text-slate-400 mb-1">BOARD</h2>
       <div id="board-roi-container" class="flex gap-3"></div>
+    </div>
+
+    <!-- Mock Controls -->
+    <div class="space-y-2">
+      <h2 class="text-xs text-slate-400 mb-1">MOCK CONTROLS</h2>
+      <div class="flex gap-2 text-[10px]">
+        <button onclick="setMockBoard('flop')" class="px-2 py-1 bg-slate-800 rounded border border-slate-600 hover:bg-slate-700">
+          FLOP
+        </button>
+        <button onclick="setMockBoard('turn')" class="px-2 py-1 bg-slate-800 rounded border border-slate-600 hover:bg-slate-700">
+          TURN
+        </button>
+        <button onclick="setMockBoard('river')" class="px-2 py-1 bg-slate-800 rounded border border-slate-600 hover:bg-slate-700">
+          RIVER
+        </button>
+        <button onclick="simulateShadowOcclusion()" class="px-2 py-1 bg-red-900/60 rounded border border-red-600 text-red-300">
+          OCCLUSION
+        </button>
+      </div>
     </div>
 
   </div>
@@ -145,12 +160,7 @@
 
 </div>
 
-<!-- ===== HUD LAYOUT END ===== -->
 <script>
-/* ============================================================
-   SPECTRA — Pyodide Standalone Brain
-   ============================================================ */
-
 const HANDS_ORDER = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
 let btnHistory = [15,15,15,15,15];
 let bbHistory = [15,15,15,15,15];
@@ -159,9 +169,6 @@ let pyodide = null;
 let mockBoard = ['9c','8c','7d'];
 let mockStreet = 'FLOP';
 
-/* -------------------------------
-   Pyodide 初期化
--------------------------------- */
 async function initPyodideAndBrain() {
   pyodide = await loadPyodide();
 
@@ -285,10 +292,6 @@ def generate_spectra_payload(board,street):
 `);
 }
 
-/* ============================================================
-   Heatmap / HUD Rendering
-============================================================ */
-
 function buildHeatmapSkeleton() {
   const grid = document.getElementById("heatmap-grid");
   grid.innerHTML = "";
@@ -326,10 +329,6 @@ function getCellColorClass(val){
   if(val>=20) return {bg:"#277432",text:"#d1fae5"};
   return {bg:"#152e1c",text:"#2f5a38"};
 }
-
-/* ============================================================
-   Board ROI Rendering
-============================================================ */
 
 function renderBoardROIs(boardCards){
   const container=document.getElementById("board-roi-container");
@@ -370,10 +369,6 @@ function renderBoardROIs(boardCards){
     container.appendChild(item);
   }
 }
-
-/* ============================================================
-   HUD Update
-============================================================ */
 
 function updateHUDGraphics(data){
   document.getElementById("street-title").innerText=data.street;
@@ -467,10 +462,6 @@ function updateHUDGraphics(data){
   }
 }
 
-/* ============================================================
-   Local Brain Loop
-============================================================ */
-
 async function startLocalSpectraLoop(){
   setInterval(async ()=>{
     if(!pyodide) return;
@@ -489,10 +480,6 @@ result=generate_spectra_payload(board,street)
     renderBoardROIs(mockBoard);
   },1000);
 }
-
-/* ============================================================
-   Mock Buttons
-============================================================ */
 
 function setMockBoard(stage){
   if(stage==="flop"){
@@ -515,19 +502,11 @@ function simulateShadowOcclusion(){
   text.innerText="WARNING: OCCLUSION DETECTED";
 }
 
-/* ============================================================
-   Clock / FPS
-============================================================ */
-
 setInterval(()=>{
   const now=new Date();
   document.getElementById("time-display").innerText=now.toTimeString().split(" ")[0];
   document.getElementById("fps-display").innerText=`FPS: ${Math.floor(28+Math.random()*3)}`;
 },1000);
-
-/* ============================================================
-   Window Onload
-============================================================ */
 
 window.onload=async()=>{
   lucide.createIcons();
@@ -543,5 +522,6 @@ window.onload=async()=>{
   startLocalSpectraLoop();
 };
 </script>
+
 </body>
 </html>
