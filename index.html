@@ -72,41 +72,71 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 #board-area{display:flex;gap:6px;padding:4px 2px;align-items:flex-start;flex-shrink:0;}
 .board-slot{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
 
-/* Dropdowns above card */
+/* Dropdowns above card — backlit style */
 .slot-inputs{display:flex;gap:2px;width:100%;}
 .slot-inputs select{
   flex:1;min-width:0;
-  background:#0c1525;
-  border:1px solid rgba(0,180,255,.3);border-radius:3px;
+  background:#0c1828;
+  border:1px solid rgba(0,180,255,.35);border-radius:3px;
   font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;
   padding:3px 1px;cursor:pointer;outline:none;text-align:center;
-  transition:border-color .2s;
+  transition:border-color .2s, background .2s, box-shadow .2s;
+  box-shadow:0 0 6px rgba(0,140,255,.15);
 }
-.slot-inputs select:focus{border-color:rgba(0,212,255,.8);}
+.slot-inputs select:focus{
+  border-color:rgba(0,212,255,.9);
+  background:#0f2035;
+  box-shadow:0 0 10px rgba(0,212,255,.3);
+}
 .rank-sel{color:#e0f0ff;}
 
 /* Card display */
 .board-card{
   width:100%;aspect-ratio:2.2/3.2;
-  border:2px solid rgba(0,255,157,.7);border-radius:5px;
-  background:rgba(0,255,157,.04);box-shadow:0 0 12px rgba(0,255,157,.15);
+  border:2px solid rgba(0,255,157,.5);border-radius:6px;
+  background:transparent;
   display:flex;align-items:center;justify-content:center;
   position:relative;transition:border-color .2s,box-shadow .2s;
+  overflow:hidden;
 }
-.board-card.waiting{border-color:rgba(0,180,255,.18);box-shadow:none;background:transparent;}
-.board-card.active{border-color:rgba(0,255,157,.9);box-shadow:0 0 16px rgba(0,255,157,.3);}
+.board-card.waiting{border-color:rgba(0,180,255,.15);box-shadow:none;background:transparent;}
+.board-card.active{border-color:rgba(255,255,255,.25);box-shadow:0 0 18px rgba(0,255,157,.2);}
 .card-inner{
-  width:88%;height:88%;background:#fff;border-radius:4px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  position:relative;
+  width:100%;height:100%;border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
 }
-.card-rank-tl{position:absolute;top:3px;left:4px;font-size:13px;font-weight:900;line-height:1;font-family:'Rajdhani',sans-serif;}
-.card-rank-br{position:absolute;bottom:3px;right:4px;font-size:13px;font-weight:900;line-height:1;font-family:'Rajdhani',sans-serif;transform:rotate(180deg);}
-.card-suit-center{font-size:28px;line-height:1;}
-.suit-s{color:#111;}
-.suit-h{color:#d00020;}
-.suit-d{color:#0055cc;}
-.suit-c{color:#007a2a;}
+/* Card backgrounds — light solid */
+.bg-s{background:#b0b8c8;}
+.bg-h{background:#f0a0a8;}
+.bg-d{background:#90b0e8;}
+.bg-c{background:#90c8a0;}
+/* suit symbol — max size, dark, fills card */
+.card-suit-bg{
+  font-size:clamp(80px,13vw,140px);
+  line-height:1;
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;user-select:none;
+}
+.card-suit-bg.sym-s{color:#1a1a22;}
+.card-suit-bg.sym-h{color:#8b0010;}
+.card-suit-bg.sym-d{color:#0a2080;}
+.card-suit-bg.sym-c{color:#0a4010;}
+/* RANK — white, huge, on top */
+.card-rank-center{
+  font-size:clamp(30px,4.5vw,52px);
+  font-weight:900;line-height:1;
+  font-family:Georgia,'Times New Roman',serif;
+  color:#fff;
+  text-shadow:0 2px 8px rgba(0,0,0,.5);
+  position:relative;z-index:2;
+}
+/* corner */
+.card-corner-tl{position:absolute;top:4px;left:5px;display:flex;flex-direction:column;align-items:center;z-index:3;line-height:1.1;}
+.card-corner-br{position:absolute;bottom:4px;right:5px;display:flex;flex-direction:column;align-items:center;transform:rotate(180deg);z-index:3;line-height:1.1;}
+.corner-rank{font-size:11px;font-weight:700;font-family:Georgia,serif;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.4);}
+.corner-suit{font-size:9px;line-height:1;color:rgba(255,255,255,.9);}
 .wait-txt{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,180,255,.35);letter-spacing:1px;animation:blink2 1.4s step-end infinite;}
 .slot-status{font-family:'Share Tech Mono',monospace;font-size:7px;color:#00ff9d;letter-spacing:.5px;text-align:center;}
 
@@ -180,6 +210,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div id="mode-divider"></div>
       <button class="mode-btn" id="btn-camera" onclick="setMode('CAMERA')">CAMERA</button>
     </div>
+    <button onclick="clearBoard()" style="font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1.5px;padding:4px 10px;border:1px solid rgba(255,59,59,.4);border-radius:3px;background:rgba(255,59,59,.08);color:rgba(255,100,100,.8);cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(255,59,59,.2)'" onmouseout="this.style.background='rgba(255,59,59,.08)'">CLEAR</button>
     <div class="conn-dot"></div>
     <span>|</span><span id="fps-d">FPS: 29</span>
     <span id="time-d">--:--:--</span>
@@ -196,7 +227,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div id="street-name">PREFLOP</div>
       <div id="street-cnt">0 / 5</div>
     </div>
-    <div class="sec" style="margin-top:3px">NUTS RANKING <span style="font-size:6.5px;opacity:.6">[ABSOLUTE]</span></div>
+    <div class="sec" style="margin-top:3px">NUTS RANKING <span style="font-size:6.5px;opacity:.6">[ABSOLUTE]</span><br><span style="font-size:7px;color:rgba(160,200,230,.35);letter-spacing:1px;font-family:'Rajdhani',sans-serif;">最強ハンドランキング</span></div>
     <div id="nuts-list">
       <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(160,200,230,.3);padding:10px 4px;line-height:1.6;">ボードを3枚以上<br>入力するとNUTS<br>が表示されます</div>
     </div>
@@ -243,17 +274,17 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     </div>
 
     <div style="background:rgba(0,0,0,.3);border:1px solid rgba(0,180,255,.12);border-radius:3px;padding:7px;flex-shrink:0;">
-      <div class="sec" style="border:none;padding:0;margin-bottom:5px;">▐ BOARD TEXTURE</div>
+      <div class="sec" style="border:none;padding:0;margin-bottom:5px;">▐ BOARD TEXTURE <span style="font-size:7px;color:rgba(160,200,230,.35);font-family:'Rajdhani',sans-serif;letter-spacing:0;">/ 盤面性質</span></div>
       <div class="wet-big" id="wet-val">--%</div>
       <div class="wet-sub" id="wet-lbl">ANALYZING</div>
       <div style="margin-top:7px;">
         <div class="metric">
-          <div class="metric-lbl">CONNECTEDNESS</div>
+          <div class="metric-lbl">CONNECTEDNESS <span style="font-size:8px;color:rgba(160,200,230,.3);letter-spacing:0;font-family:'Rajdhani',sans-serif;">つながり度</span></div>
           <div class="bar-wrap"><div class="bar-fill" id="bar-con" style="width:0%;background:#00d4ff;"></div></div>
           <div class="metric-val" id="val-con" style="color:#00d4ff;">--%</div>
         </div>
         <div class="metric" style="margin-bottom:0;">
-          <div class="metric-lbl">FLUSH DENSITY</div>
+          <div class="metric-lbl">FLUSH DENSITY <span style="font-size:8px;color:rgba(160,200,230,.3);letter-spacing:0;font-family:'Rajdhani',sans-serif;">フラッシュ密度</span></div>
           <div class="bar-wrap"><div class="bar-fill" id="bar-fls" style="width:0%;background:#a855f7;"></div></div>
           <div class="metric-val" id="val-fls" style="color:#a855f7;">--%</div>
         </div>
@@ -261,7 +292,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     </div>
 
     <div style="background:rgba(0,0,0,.3);border:1px solid rgba(0,180,255,.12);border-radius:3px;padding:7px;flex-shrink:0;">
-      <div class="sec" style="border:none;padding:0;margin-bottom:5px;">▐ RANGE ADVANTAGE <span style="font-size:6px;">(BTN vs BB)</span></div>
+      <div class="sec" style="border:none;padding:0;margin-bottom:5px;">▐ RANGE ADVANTAGE <span style="font-size:6px;">(BTN vs BB)</span> <span style="font-size:7px;color:rgba(160,200,230,.35);letter-spacing:0;font-family:'Rajdhani',sans-serif;">/ レンジ有利度</span></div>
       <div class="range-grid">
         <div>
           <div class="range-name" style="color:#ff3b3b;">BTN</div>
@@ -277,7 +308,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <canvas id="sparkline" width="200" height="32" style="width:100%;margin-top:5px;opacity:.7;"></canvas>
     </div>
 
-    <div class="sec">▐ DYNAMIC HEATMAP</div>
+    <div class="sec">▐ DYNAMIC HEATMAP <span style="font-size:7px;color:rgba(160,200,230,.35);letter-spacing:0;font-family:'Rajdhani',sans-serif;">/ 強度分布マップ</span></div>
     <div id="hm-wrap">
       <div id="hm-grid"></div>
       <div id="hm-spin">CALCULATING...</div>
@@ -467,7 +498,7 @@ function calcTexture(board){
   const maxSuit=Math.max(...Object.values(suitCounts));
   const flush=Math.round(maxSuit/board.length*100);
   const wet=Math.round((connect+flush)/2);
-  const lbl=wet>=80?'VERY WET':wet>=60?'WET':wet>=40?'SEMI-WET':wet>=20?'DRY':'VERY DRY';
+  const lbl=wet>=80?'VERY WET / 非常に危険':wet>=60?'WET / 危険':wet>=40?'SEMI-WET / やや危険':wet>=20?'DRY / 安全':'VERY DRY / 非常に安全';
   return{wet,connect,flush,lbl};
 }
 
@@ -568,7 +599,15 @@ function buildBoardArea(){
     const sSel=document.createElement('select');sSel.className='suit-sel';sSel.id='ssel-'+i;
     sSel.innerHTML='<option value="">-</option>'+SUITS_LIST.map(s=>`<option value="${s}" style="color:${SUIT_COLORS[s]}">${SUIT_SYM[s]}</option>`).join('');
 
-    const updateSuitColor=()=>{sSel.style.color=SUIT_COLORS[sSel.value]||'rgba(160,200,230,.5)';};
+    const SUIT_GLOW = {s:'rgba(180,180,220,.35)',h:'rgba(220,30,60,.35)',d:'rgba(30,80,220,.35)',c:'rgba(30,160,60,.35)'};
+    const SUIT_BORDER = {s:'rgba(160,160,210,.7)',h:'rgba(220,30,60,.8)',d:'rgba(30,80,220,.8)',c:'rgba(30,160,60,.8)'};
+    const updateSuitColor=()=>{
+      const v=sSel.value;
+      sSel.style.color=SUIT_COLORS[v]||'rgba(160,200,230,.5)';
+      sSel.style.boxShadow=v?`0 0 10px ${SUIT_GLOW[v]}`:'0 0 6px rgba(0,140,255,.15)';
+      sSel.style.borderColor=v?SUIT_BORDER[v]:'rgba(0,180,255,.35)';
+      sSel.style.background=v?`rgba(0,0,0,.6)`:'#0c1828';
+    };
     sSel.addEventListener('change',()=>{updateSuitColor();onInputChanged();});
     rSel.addEventListener('change',onInputChanged);
     updateSuitColor();
@@ -587,18 +626,28 @@ function buildBoardArea(){
   }
 }
 
+const BG_CLS = {s:'bg-s',h:'bg-h',d:'bg-d',c:'bg-c'};
+
 function updateBoardCards(board){
   for(let i=0;i<5;i++){
     const card=document.getElementById('bcard-'+i);
     const stat=document.getElementById('bstat-'+i);
     if(i<board.length){
       const raw=board[i],rank=raw[0].toUpperCase(),suit=raw[1];
-      const cls=SUIT_CLS[suit]||'';
+      const bgCls=BG_CLS[suit]||'';
+      const sym=SUIT_SYM[suit]||'';
       card.className='board-card active';
-      card.innerHTML=`<div class="card-inner">
-        <span class="card-rank-tl ${cls}">${rank}</span>
-        <span class="card-suit-center ${cls}">${SUIT_SYM[suit]||''}</span>
-        <span class="card-rank-br ${cls}">${rank}</span>
+      card.innerHTML=`<div class="card-inner ${bgCls}">
+        <span class="card-suit-bg sym-${suit}">${sym}</span>
+        <span class="card-rank-center">${rank}</span>
+        <div class="card-corner-tl">
+          <span class="corner-rank">${rank}</span>
+          <span class="corner-suit">${sym}</span>
+        </div>
+        <div class="card-corner-br">
+          <span class="corner-rank">${rank}</span>
+          <span class="corner-suit">${sym}</span>
+        </div>
       </div>`;
       stat.textContent='LOCKED ✓';stat.style.color='#00ff9d';
     } else {
@@ -606,6 +655,65 @@ function updateBoardCards(board){
       card.innerHTML=`<div class="wait-txt">CARD ${i+1}</div>`;
       stat.textContent='';
     }
+  }
+}
+
+/* ── キャッシュ ── */
+const evalCache = new Map();
+
+/* ── UI全クリア ── */
+function resetBrainUI(){
+  for(let i=0;i<169;i++){
+    const c=document.getElementById('hc'+i);
+    if(c) c.style.backgroundColor='#0d1a2a';
+  }
+  document.getElementById('nuts-list').innerHTML=
+    '<div style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:rgba(160,200,230,.3);padding:10px 4px;line-height:1.6;">ボードを3枚以上<br>入力するとNUTS<br>が表示されます</div>';
+  document.getElementById('calc-time').textContent='CALC: --ms';
+}
+
+/* ── CLEARボタン ── */
+function clearBoard(){
+  for(let i=0;i<5;i++){
+    const r=document.getElementById('rsel-'+i);
+    const s=document.getElementById('ssel-'+i);
+    if(r) r.value='';
+    if(s){ s.value=''; s.style.color='rgba(160,200,230,.5)'; }
+  }
+  currentBoard=[];
+  renderStreet([]);
+  updateBoardCards([]);
+  renderAnalytics([]);
+  resetBrainUI();
+  setStabState('MANUAL');
+  updateDuplicateGuard();
+}
+
+/* ── 重複防止ガード ── */
+function updateDuplicateGuard(){
+  const selected=new Set();
+  for(let i=0;i<5;i++){
+    const r=document.getElementById('rsel-'+i)?.value;
+    const s=document.getElementById('ssel-'+i)?.value;
+    if(r&&s) selected.add(r+s);
+  }
+  for(let i=0;i<5;i++){
+    const r=document.getElementById('rsel-'+i);
+    const s=document.getElementById('ssel-'+i);
+    if(!r||!s) continue;
+    const myVal=(r.value&&s.value)?r.value+s.value:'';
+    // rebuild options for suit select
+    Array.from(s.options).forEach(opt=>{
+      if(!opt.value) return;
+      const card=r.value+opt.value;
+      opt.disabled = (selected.has(card) && card!==myVal);
+    });
+    // rebuild options for rank select
+    Array.from(r.options).forEach(opt=>{
+      if(!opt.value) return;
+      const card=opt.value+s.value;
+      opt.disabled = s.value && selected.has(card) && card!==myVal;
+    });
   }
 }
 
@@ -622,6 +730,7 @@ function readInputBoard(){
 function onInputChanged(){
   if(currentMode!=='MANUAL')return;
   currentBoard=readInputBoard();
+  updateDuplicateGuard();
   renderStreet(currentBoard);
   updateBoardCards(currentBoard);
   renderAnalytics(currentBoard);
@@ -630,16 +739,28 @@ function onInputChanged(){
     clearTimeout(calcTimer);
     calcTimer=setTimeout(triggerBrainUpdate,300);
   } else {
+    resetBrainUI();
     setStabState('MANUAL');
   }
 }
 
 async function triggerBrainUpdate(){
   if(!brainReady||currentBoard.length<3)return;
+  const cacheKey=currentBoard.join(',');
+  // キャッシュヒット
+  if(evalCache.has(cacheKey)){
+    const cached=evalCache.get(cacheKey);
+    renderHeatmap(cached);
+    renderNuts(cached);
+    document.getElementById('calc-time').textContent='CALC: 0ms (cached)';
+    setStabState('DONE');
+    return;
+  }
   setStabState('CALC');
   document.getElementById('hm-spin').classList.add('active');
   try{
     const data=await evalAll169(currentBoard);
+    evalCache.set(cacheKey,data);
     renderHeatmap(data);
     renderNuts(data);
     setStabState('DONE');
