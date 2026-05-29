@@ -702,13 +702,16 @@ function buildBoardArea(){
 
 const BG_CLS = {s:'bg-s',h:'bg-h',d:'bg-d',c:'bg-c'};
 
-function updateBoardCards(board){
+function updateBoardCards(){
+  /* Drive by SLOT INDEX — not board array — so gaps are preserved visually */
   for(let i=0;i<5;i++){
+    const rVal=document.getElementById('rsel-'+i)?.value||'';
+    const sVal=document.getElementById('ssel-'+i)?.value||'';
     const card=document.getElementById('bcard-'+i);
-    const stat=document.getElementById('bstat-'+i);
     const clrBtn=document.getElementById('clr-'+i);
-    if(i<board.length){
-      const raw=board[i],rank=raw[0].toUpperCase(),suit=raw[1];
+    if(!card) continue;
+    if(rVal && sVal){
+      const rank=rVal.toUpperCase(), suit=sVal;
       const bgCls=BG_CLS[suit]||'';
       const sym=SUIT_SYM[suit]||'';
       card.className='board-card active';
@@ -724,12 +727,10 @@ function updateBoardCards(board){
           <span class="corner-suit">${sym}</span>
         </div>
       </div>`;
-      stat.textContent='';  /* status text removed — card is self-evident */
       if(clrBtn) clrBtn.classList.add('has-card');
     } else {
       card.className='board-card waiting';
       card.innerHTML=`<div class="wait-txt">CARD ${i+1}</div>`;
-      stat.textContent='';
       if(clrBtn) clrBtn.classList.remove('has-card');
     }
   }
@@ -759,7 +760,7 @@ function clearBoard(){
   }
   currentBoard=[];
   renderStreet([]);
-  updateBoardCards([]);
+  updateBoardCards();
   renderAnalytics([]);
   resetBrainUI();
   setStabState('MANUAL');
@@ -809,7 +810,7 @@ function onInputChanged(){
   currentBoard=readInputBoard();
   updateDuplicateGuard();
   renderStreet(currentBoard);
-  updateBoardCards(currentBoard);
+  updateBoardCards();
   renderAnalytics(currentBoard);
   if(currentBoard.length>=3){
     setStabState('LOCKED');
