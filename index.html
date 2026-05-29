@@ -69,11 +69,11 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 #pl-bot{position:absolute;bottom:-17px;display:flex;flex-direction:column;align-items:center;gap:2px;}
 
 /* BOARD CARDS AREA — dropdowns ON TOP of cards */
-#board-area{display:flex;gap:6px;padding:4px 2px;align-items:flex-start;flex-shrink:0;}
+#board-area{display:flex;flex-direction:column;padding:4px 2px;flex-shrink:0;}
 .board-slot{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
 
 /* Dropdowns above card — backlit style */
-.slot-inputs{display:flex;gap:2px;width:100%;}
+.slot-inputs{display:flex;gap:2px;width:100%;align-items:center;}
 .slot-inputs select{
   flex:1;min-width:0;
   background:#0c1828;
@@ -138,7 +138,10 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 .corner-rank{font-size:11px;font-weight:700;font-family:Georgia,serif;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.4);}
 .corner-suit{font-size:9px;line-height:1;color:rgba(255,255,255,.9);}
 .wait-txt{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,180,255,.35);letter-spacing:1px;animation:blink2 1.4s step-end infinite;}
-.slot-status{font-family:'Share Tech Mono',monospace;font-size:7px;color:#00ff9d;letter-spacing:.5px;text-align:center;}
+.slot-status{font-family:'Share Tech Mono',monospace;font-size:7px;color:#00ff9d;letter-spacing:.5px;text-align:center;height:0;overflow:visible;position:relative;top:-14px;opacity:.85;}
+/* per-slot clear: hide when slot is empty */
+.slot-clr{opacity:0;pointer-events:none;transition:opacity .15s;}
+.slot-clr.has-card{opacity:1;pointer-events:auto;}
 
 /* Hide inputs in camera mode */
 .cam-mode .slot-inputs{display:none;}
@@ -254,10 +257,6 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     </div>
 
     <!-- Board area: dropdowns on top, cards below -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;flex-shrink:0;">
-      <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,.4);letter-spacing:1.5px;">▐ BOARD CARDS</div>
-      <button id="clear-all-btn" onclick="clearBoard()" style="font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;padding:3px 9px;border:1px solid rgba(255,59,59,.35);border-radius:2px;background:rgba(255,59,59,.07);color:rgba(255,100,100,.7);cursor:pointer;transition:all .18s;" onmouseover="this.style.background='rgba(255,59,59,.22)';this.style.color='rgba(255,130,130,1)'" onmouseout="this.style.background='rgba(255,59,59,.07)';this.style.color='rgba(255,100,100,.7)'">✕ CLEAR ALL</button>
-    </div>
     <div id="board-area"></div>
 
     <!-- Stabilizer -->
@@ -587,63 +586,117 @@ function renderStreet(board){
 /* ══════════════════════════════
    BOARD AREA BUILD
 ══════════════════════════════ */
+/* ── Per-slot clear ── */
 function clearSlot(i){
   const r=document.getElementById('rsel-'+i);
   const s=document.getElementById('ssel-'+i);
   if(r) r.value='';
   if(s){ s.value=''; s.style.color='rgba(160,200,230,.5)'; s.style.boxShadow='0 0 6px rgba(0,140,255,.15)'; s.style.borderColor='rgba(0,180,255,.35)'; s.style.background='#0c1828'; }
+  // hide × when slot is empty
+  const btn=document.getElementById('clr-'+i);
+  if(btn) btn.classList.remove('has-card');
   onInputChanged();
+}
+
+/* ── CLEAR ALL: long-press 500ms as safety ── */
+let _clearTimer=null;
+function clearAllStart(){
+  const btn=document.getElementById('clear-all-btn');
+  if(btn){btn.style.background='rgba(255,59,59,.15)';btn.textContent='HOLD...';}
+  _clearTimer=setTimeout(()=>{
+    clearBoard();
+    if(btn){btn.textContent='✕ CLEAR ALL';btn.style.background='rgba(255,59,59,.05)';}
+  },600);
+}
+function clearAllCancel(){
+  clearTimeout(_clearTimer);
+  const btn=document.getElementById('clear-all-btn');
+  if(btn){btn.style.background='rgba(255,59,59,.05)';btn.textContent='✕ CLEAR ALL';}
 }
 
 function buildBoardArea(){
   const area=document.getElementById('board-area');
   area.innerHTML='';
+
+  /* ── Header row: label + CLEAR ALL ── */
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;padding:0 2px;flex-shrink:0;';
+  hdr.innerHTML=`
+    <span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,.35);letter-spacing:2px;">▐ BOARD CARDS</span>
+    <button id="clear-all-btn"
+      onmousedown="clearAllStart()" onmouseup="clearAllCancel()" onmouseleave="clearAllCancel()"
+      ontouchstart="clearAllStart()" ontouchend="clearAllCancel()"
+      style="font-family:'Orbitron',monospace;font-size:8px;letter-spacing:.8px;padding:3px 8px;
+             border:1px solid rgba(255,59,59,.3);border-radius:2px;background:rgba(255,59,59,.05);
+             color:rgba(255,100,100,.6);cursor:pointer;transition:all .15s;user-select:none;"
+      onmouseover="this.style.borderColor='rgba(255,59,59,.6)';this.style.color='rgba(255,130,130,1)';"
+      onmouseout="this.style.borderColor='rgba(255,59,59,.3)';this.style.color='rgba(255,100,100,.6)';">
+      ✕ CLEAR ALL</button>`;
+  area.appendChild(hdr);
+
+  /* ── Card slots ── */
+  const slotsWrap=document.createElement('div');
+  slotsWrap.style.cssText='display:flex;gap:6px;padding:0 2px;align-items:flex-start;';
+  area.appendChild(slotsWrap);
+
+  const SUIT_GLOW  ={s:'rgba(180,180,220,.35)',h:'rgba(220,30,60,.35)',d:'rgba(30,80,220,.35)',c:'rgba(30,160,60,.35)'};
+  const SUIT_BORDER={s:'rgba(160,160,210,.7)',h:'rgba(220,30,60,.8)',d:'rgba(30,80,220,.8)',c:'rgba(30,160,60,.8)'};
+
   for(let i=0;i<5;i++){
-    const slot=document.createElement('div');slot.className='board-slot';slot.id='slot-'+i;
+    const slot=document.createElement('div');
+    slot.className='board-slot';slot.id='slot-'+i;
+    slot.style.cssText='display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;';
 
-    /* Dropdowns row + clear button */
-    const inputs=document.createElement('div');inputs.className='slot-inputs';
-    inputs.style.cssText='display:flex;gap:2px;width:100%;align-items:center;';
-
+    /* ── Rank select ── */
     const rSel=document.createElement('select');rSel.className='rank-sel';rSel.id='rsel-'+i;
+    rSel.style.cssText='width:100%;background:#0c1828;border:1px solid rgba(0,180,255,.35);border-radius:3px;font-family:"Rajdhani",sans-serif;font-size:14px;font-weight:700;padding:3px 1px;cursor:pointer;outline:none;text-align:center;color:#e0f0ff;transition:border-color .2s,background .2s,box-shadow .2s;box-shadow:0 0 6px rgba(0,140,255,.15);';
     rSel.innerHTML='<option value="">-</option>'+RANKS_LIST.map(r=>`<option value="${r}">${r}</option>`).join('');
 
+    /* ── Suit select + × row ── */
+    const suitRow=document.createElement('div');
+    suitRow.style.cssText='display:flex;gap:2px;width:100%;align-items:center;';
+
     const sSel=document.createElement('select');sSel.className='suit-sel';sSel.id='ssel-'+i;
+    sSel.style.cssText='flex:1;min-width:0;background:#0c1828;border:1px solid rgba(0,180,255,.35);border-radius:3px;font-family:"Rajdhani",sans-serif;font-size:14px;font-weight:700;padding:3px 1px;cursor:pointer;outline:none;text-align:center;transition:border-color .2s,background .2s,box-shadow .2s;box-shadow:0 0 6px rgba(0,140,255,.15);';
     sSel.innerHTML='<option value="">-</option>'+SUITS_LIST.map(s=>`<option value="${s}" style="color:${SUIT_COLORS[s]}">${SUIT_SYM[s]}</option>`).join('');
 
-    /* Per-slot clear button */
+    /* × button — only visible when card is set */
     const clrBtn=document.createElement('button');
-    clrBtn.textContent='✕';
-    clrBtn.title='このカードをクリア';
-    clrBtn.style.cssText='flex-shrink:0;width:18px;height:18px;padding:0;border:1px solid rgba(255,59,59,.25);border-radius:2px;background:rgba(255,59,59,.05);color:rgba(255,100,100,.5);font-size:9px;cursor:pointer;transition:all .15s;line-height:1;';
-    clrBtn.onmouseover=()=>{clrBtn.style.background='rgba(255,59,59,.25)';clrBtn.style.color='rgba(255,130,130,1)';clrBtn.style.borderColor='rgba(255,59,59,.6)';};
-    clrBtn.onmouseout=()=>{clrBtn.style.background='rgba(255,59,59,.05)';clrBtn.style.color='rgba(255,100,100,.5)';clrBtn.style.borderColor='rgba(255,59,59,.25)';};
+    clrBtn.id='clr-'+i;clrBtn.className='slot-clr';
+    clrBtn.title='このカードを消す';clrBtn.textContent='✕';
+    clrBtn.style.cssText='flex-shrink:0;width:20px;height:20px;padding:0;border:1px solid rgba(255,59,59,.3);border-radius:2px;background:rgba(255,59,59,.06);color:rgba(255,100,100,.55);font-size:10px;cursor:pointer;line-height:1;transition:all .15s;';
+    clrBtn.onmouseover=()=>{clrBtn.style.background='rgba(255,59,59,.28)';clrBtn.style.color='#ff9090';clrBtn.style.borderColor='rgba(255,59,59,.7)';};
+    clrBtn.onmouseout=()=>{clrBtn.style.background='rgba(255,59,59,.06)';clrBtn.style.color='rgba(255,100,100,.55)';clrBtn.style.borderColor='rgba(255,59,59,.3)';};
     clrBtn.onclick=()=>clearSlot(i);
 
-    const SUIT_GLOW = {s:'rgba(180,180,220,.35)',h:'rgba(220,30,60,.35)',d:'rgba(30,80,220,.35)',c:'rgba(30,160,60,.35)'};
-    const SUIT_BORDER = {s:'rgba(160,160,210,.7)',h:'rgba(220,30,60,.8)',d:'rgba(30,80,220,.8)',c:'rgba(30,160,60,.8)'};
     const updateSuitColor=()=>{
       const v=sSel.value;
       sSel.style.color=SUIT_COLORS[v]||'rgba(160,200,230,.5)';
       sSel.style.boxShadow=v?`0 0 10px ${SUIT_GLOW[v]}`:'0 0 6px rgba(0,140,255,.15)';
       sSel.style.borderColor=v?SUIT_BORDER[v]:'rgba(0,180,255,.35)';
-      sSel.style.background=v?`rgba(0,0,0,.6)`:'#0c1828';
+      sSel.style.background=v?'rgba(0,0,0,.6)':'#0c1828';
+      // show/hide × based on whether BOTH rank and suit are set
+      const full=rSel.value&&v;
+      clrBtn.classList.toggle('has-card',!!full);
     };
-    sSel.addEventListener('change',()=>{updateSuitColor();onInputChanged();});
-    rSel.addEventListener('change',onInputChanged);
+    rSel.addEventListener('change',()=>{ updateSuitColor(); onInputChanged(); });
+    sSel.addEventListener('change',()=>{ updateSuitColor(); onInputChanged(); });
     updateSuitColor();
 
-    inputs.appendChild(rSel);inputs.appendChild(sSel);inputs.appendChild(clrBtn);
+    suitRow.appendChild(sSel);suitRow.appendChild(clrBtn);
 
-    /* Card display */
+    /* ── Card display ── */
     const card=document.createElement('div');card.className='board-card waiting';card.id='bcard-'+i;
     card.innerHTML=`<div class="wait-txt">CARD ${i+1}</div>`;
 
-    /* Status */
+    /* ── Status (overlaid below card via CSS) ── */
     const status=document.createElement('div');status.className='slot-status';status.id='bstat-'+i;
 
-    slot.appendChild(inputs);slot.appendChild(card);slot.appendChild(status);
-    area.appendChild(slot);
+    slot.appendChild(rSel);
+    slot.appendChild(suitRow);
+    slot.appendChild(card);
+    slot.appendChild(status);
+    slotsWrap.appendChild(slot);
   }
 }
 
@@ -653,6 +706,7 @@ function updateBoardCards(board){
   for(let i=0;i<5;i++){
     const card=document.getElementById('bcard-'+i);
     const stat=document.getElementById('bstat-'+i);
+    const clrBtn=document.getElementById('clr-'+i);
     if(i<board.length){
       const raw=board[i],rank=raw[0].toUpperCase(),suit=raw[1];
       const bgCls=BG_CLS[suit]||'';
@@ -670,11 +724,13 @@ function updateBoardCards(board){
           <span class="corner-suit">${sym}</span>
         </div>
       </div>`;
-      stat.textContent='LOCKED ✓';stat.style.color='#00ff9d';
+      stat.textContent='';  /* status text removed — card is self-evident */
+      if(clrBtn) clrBtn.classList.add('has-card');
     } else {
       card.className='board-card waiting';
       card.innerHTML=`<div class="wait-txt">CARD ${i+1}</div>`;
       stat.textContent='';
+      if(clrBtn) clrBtn.classList.remove('has-card');
     }
   }
 }
