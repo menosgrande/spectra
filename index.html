@@ -825,5 +825,174 @@ renderStreet([]);
 drawSparkline(50,50);
 initBrain();
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SPECTRA Math-Correct Patch v1.0
+     ・既存コードを一切変更しない（追加のみ）
+     ・renderAnalytics の捏造式 `50 + wet * 0.12` を本物の
+       Monte Carlo Range-vs-Range Equity で上書き
+     ・treysが既にロード済みであることを前提に動作
+     ・誤差 ±1% (N=4000 Monte Carlo)
+═══════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+
+  /* ── ① プリセットレンジ（標準的な100bb 6max BTN/BBオープン/ディフェンス代表値） ── */
+  const RANGES = {
+    BTN: "22+,A2s+,K5s+,Q8s+,J8s+,T8s+,97s+,86s+,75s+,65s,54s,A7o+,KTo+,QTo+,JTo",
+    BB:  "22+,A2s+,K2s+,Q4s+,J7s+,T7s+,96s+,85s+,74s+,64s+,53s+,A2o+,K7o+,Q8o+,J8o+,T8o+,97o+,87o"
+  };
+
+  /* ── ② Pyodide内にEquityエンジンを1度だけインストール ── */
+  let pyEquityReady = false;
+
+  async function installPyEquity() {
+    if (pyEquityReady) return;
+    // brainReady（treysロード完了）を待つ
+    while (!window.brainReady) {
+      await new Promise(r => setTimeout(r, 200));
+    }
+    const py = window.pyodideObj;
+    await py.runPythonAsync(`
+import random
+from treys import Card, Evaluator as _Ev
+_EV2 = _Ev()
+_RANKS2 = 'AKQJT98765432'
+_SUITS2 = 'shdc'
+_FULL_DECK2 = [Card.new(r+s) for r in _RANKS2 for s in _SUITS2]
+
+def _expand_range2(range_str):
+    combos = []
+    for tok in range_str.split(','):
+        tok = tok.strip()
+        if not tok: continue
+        plus = tok.endswith('+')
+        base = tok[:-1] if plus else tok
+        r1, r2 = base[0], base[1]
+        typ = base[2] if len(base) > 2 else None
+        i1, i2 = _RANKS2.index(r1), _RANKS2.index(r2)
+        if r1 == r2:  # ペア
+            target = 0 if plus else i1
+            for i in range(target, i1 + 1):
+                r = _RANKS2[i]
+                for a in range(4):
+                    for b in range(a + 1, 4):
+                        combos.append((Card.new(r + _SUITS2[a]), Card.new(r + _SUITS2[b])))
+        else:
+            end_low = i1 - 1 if plus else i2
+            for jj in range(i2, end_low + 1):
+                rL = _RANKS2[jj]
+                if typ == 's':
+                    for a in range(4):
+                        combos.append((Card.new(r1 + _SUITS2[a]), Card.new(rL + _SUITS2[a])))
+                elif typ == 'o':
+                    for a in range(4):
+                        for b in range(4):
+                            if a != b:
+                                combos.append((Card.new(r1 + _SUITS2[a]), Card.new(rL + _SUITS2[b])))
+    return combos
+
+def range_vs_range_equity2(range_a_str, range_b_str, board_strs, n_trials=4000):
+    board = [Card.new(c) for c in board_strs]
+    board_set = set(board)
+    combos_a = [c for c in _expand_range2(range_a_str) if c[0] not in board_set and c[1] not in board_set]
+    combos_b = [c for c in _expand_range2(range_b_str) if c[0] not in board_set and c[1] not in board_set]
+    if not combos_a or not combos_b:
+        return (50.0, 50.0, 0)
+    n_remain = 5 - len(board)
+    win_a = 0.0
+    valid = 0
+    for _ in range(n_trials):
+        ha = random.choice(combos_a)
+        hb = random.choice(combos_b)
+        if ha[0] in (hb[0], hb[1]) or ha[1] in (hb[0], hb[1]):
+            continue
+        used = set(board) | {ha[0], ha[1], hb[0], hb[1]}
+        remaining = [c for c in _FULL_DECK2 if c not in used]
+        extra = random.sample(remaining, n_remain) if n_remain > 0 else []
+        full_board = board + extra
+        sa = _EV2.evaluate(full_board, [ha[0], ha[1]])
+        sb = _EV2.evaluate(full_board, [hb[0], hb[1]])
+        if sa < sb:   win_a += 1
+        elif sa == sb: win_a += 0.5
+        valid += 1
+    if valid == 0:
+        return (50.0, 50.0, 0)
+    eq_a = win_a / valid * 100
+    return (round(eq_a, 1), round(100 - eq_a, 1), valid)
+`);
+    pyEquityReady = true;
+    console.log('[SPECTRA Patch v1.0] Equity engine installed.');
+  }
+
+  /* ── ③ 本物のRange Advantage計算（キャッシュ付き） ── */
+  const equityCache = new Map();
+
+  async function calcRealEquity(board) {
+    if (board.length < 3) return null;
+    const key = board.join(',');
+    if (equityCache.has(key)) return equityCache.get(key);
+    await installPyEquity();
+    const t0 = performance.now();
+    const raw = await window.pyodideObj.runPythonAsync(
+      `range_vs_range_equity2("${RANGES.BTN}", "${RANGES.BB}", ${JSON.stringify(board)}, 4000)`
+    );
+    const arr = raw.toJs();
+    const ms  = Math.round(performance.now() - t0);
+    const out = { btn: Math.round(arr[0]), bb: Math.round(arr[1]), n: arr[2], ms };
+    equityCache.set(key, out);
+    console.log(`[SPECTRA Patch] Equity → BTN=${out.btn}% BB=${out.bb}% n=${out.n} (${out.ms}ms)`);
+    return out;
+  }
+
+  /* ── ④ renderAnalytics をモンキーパッチ ── */
+  const _origRenderAnalytics = window.renderAnalytics;
+
+  window.renderAnalytics = function(board) {
+    // まず既存の処理をそのまま実行（Texture等は触らない）
+    _origRenderAnalytics(board);
+    if (board.length < 3) return;
+
+    // 非同期でEquityを計算し、捏造値を本物で上書き
+    calcRealEquity(board).then(eq => {
+      if (!eq) return;
+
+      // BTN/BBバーとテキストを本物で上書き
+      const barBtn = document.getElementById('bar-btn');
+      const valBtn = document.getElementById('val-btn');
+      const barBb  = document.getElementById('bar-bb');
+      const valBb  = document.getElementById('val-bb');
+
+      if (barBtn) barBtn.style.width = eq.btn + '%';
+      if (valBtn) {
+        valBtn.textContent = eq.btn + '%';
+        // ツールチップに誤差と信頼情報を表示
+        valBtn.title = `Monte Carlo Equity ±1% (N=${eq.n}, ${eq.ms}ms)`;
+      }
+      if (barBb)  barBb.style.width = eq.bb + '%';
+      if (valBb)  {
+        valBb.textContent = eq.bb + '%';
+        valBb.title = `Monte Carlo Equity ±1% (N=${eq.n}, ${eq.ms}ms)`;
+      }
+
+      // スパークラインも本物の値で再描画
+      if (typeof window.drawSparkline === 'function') {
+        drawSparkline(eq.btn, eq.bb);
+      }
+    });
+  };
+
+  /* ── ⑤ 公開API（デバッグ・将来拡張用） ── */
+  window.SPECTRA_PATCH = {
+    RANGES,
+    calcEquity: calcRealEquity,
+    cache:      equityCache,
+    version:    '1.0'
+  };
+
+  console.log('[SPECTRA Math-Correct Patch v1.0] Loaded. Waiting for BRAIN:READY...');
+
+})();
+</script>
 </body>
 </html>
