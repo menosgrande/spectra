@@ -210,7 +210,6 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div id="mode-divider"></div>
       <button class="mode-btn" id="btn-camera" onclick="setMode('CAMERA')">CAMERA</button>
     </div>
-    <button onclick="clearBoard()" style="font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1.5px;padding:4px 10px;border:1px solid rgba(255,59,59,.4);border-radius:3px;background:rgba(255,59,59,.08);color:rgba(255,100,100,.8);cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(255,59,59,.2)'" onmouseout="this.style.background='rgba(255,59,59,.08)'">CLEAR</button>
     <div class="conn-dot"></div>
     <span>|</span><span id="fps-d">FPS: 29</span>
     <span id="time-d">--:--:--</span>
@@ -255,6 +254,10 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     </div>
 
     <!-- Board area: dropdowns on top, cards below -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;flex-shrink:0;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,.4);letter-spacing:1.5px;">▐ BOARD CARDS</div>
+      <button id="clear-all-btn" onclick="clearBoard()" style="font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;padding:3px 9px;border:1px solid rgba(255,59,59,.35);border-radius:2px;background:rgba(255,59,59,.07);color:rgba(255,100,100,.7);cursor:pointer;transition:all .18s;" onmouseover="this.style.background='rgba(255,59,59,.22)';this.style.color='rgba(255,130,130,1)'" onmouseout="this.style.background='rgba(255,59,59,.07)';this.style.color='rgba(255,100,100,.7)'">✕ CLEAR ALL</button>
+    </div>
     <div id="board-area"></div>
 
     <!-- Stabilizer -->
@@ -584,20 +587,38 @@ function renderStreet(board){
 /* ══════════════════════════════
    BOARD AREA BUILD
 ══════════════════════════════ */
+function clearSlot(i){
+  const r=document.getElementById('rsel-'+i);
+  const s=document.getElementById('ssel-'+i);
+  if(r) r.value='';
+  if(s){ s.value=''; s.style.color='rgba(160,200,230,.5)'; s.style.boxShadow='0 0 6px rgba(0,140,255,.15)'; s.style.borderColor='rgba(0,180,255,.35)'; s.style.background='#0c1828'; }
+  onInputChanged();
+}
+
 function buildBoardArea(){
   const area=document.getElementById('board-area');
   area.innerHTML='';
   for(let i=0;i<5;i++){
     const slot=document.createElement('div');slot.className='board-slot';slot.id='slot-'+i;
 
-    /* Dropdowns */
+    /* Dropdowns row + clear button */
     const inputs=document.createElement('div');inputs.className='slot-inputs';
+    inputs.style.cssText='display:flex;gap:2px;width:100%;align-items:center;';
 
     const rSel=document.createElement('select');rSel.className='rank-sel';rSel.id='rsel-'+i;
     rSel.innerHTML='<option value="">-</option>'+RANKS_LIST.map(r=>`<option value="${r}">${r}</option>`).join('');
 
     const sSel=document.createElement('select');sSel.className='suit-sel';sSel.id='ssel-'+i;
     sSel.innerHTML='<option value="">-</option>'+SUITS_LIST.map(s=>`<option value="${s}" style="color:${SUIT_COLORS[s]}">${SUIT_SYM[s]}</option>`).join('');
+
+    /* Per-slot clear button */
+    const clrBtn=document.createElement('button');
+    clrBtn.textContent='✕';
+    clrBtn.title='このカードをクリア';
+    clrBtn.style.cssText='flex-shrink:0;width:18px;height:18px;padding:0;border:1px solid rgba(255,59,59,.25);border-radius:2px;background:rgba(255,59,59,.05);color:rgba(255,100,100,.5);font-size:9px;cursor:pointer;transition:all .15s;line-height:1;';
+    clrBtn.onmouseover=()=>{clrBtn.style.background='rgba(255,59,59,.25)';clrBtn.style.color='rgba(255,130,130,1)';clrBtn.style.borderColor='rgba(255,59,59,.6)';};
+    clrBtn.onmouseout=()=>{clrBtn.style.background='rgba(255,59,59,.05)';clrBtn.style.color='rgba(255,100,100,.5)';clrBtn.style.borderColor='rgba(255,59,59,.25)';};
+    clrBtn.onclick=()=>clearSlot(i);
 
     const SUIT_GLOW = {s:'rgba(180,180,220,.35)',h:'rgba(220,30,60,.35)',d:'rgba(30,80,220,.35)',c:'rgba(30,160,60,.35)'};
     const SUIT_BORDER = {s:'rgba(160,160,210,.7)',h:'rgba(220,30,60,.8)',d:'rgba(30,80,220,.8)',c:'rgba(30,160,60,.8)'};
@@ -612,7 +633,7 @@ function buildBoardArea(){
     rSel.addEventListener('change',onInputChanged);
     updateSuitColor();
 
-    inputs.appendChild(rSel);inputs.appendChild(sSel);
+    inputs.appendChild(rSel);inputs.appendChild(sSel);inputs.appendChild(clrBtn);
 
     /* Card display */
     const card=document.createElement('div');card.className='board-card waiting';card.id='bcard-'+i;
