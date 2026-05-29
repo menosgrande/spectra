@@ -3,331 +3,250 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>GXIVISION POKER SYSTEM v2.0</title>
+<title>SPECTRA v2.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js"></script>
 <style>
-/* ── RESET & BASE ── */
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100%;height:100%;overflow:hidden;background:#04080f;color:#c8dff0;font-family:'Rajdhani',sans-serif;}
-
-/* ── SCANLINES ── */
 body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);pointer-events:none;z-index:9999;}
-
-/* ── ROOT LAYOUT: header + main + footer ── */
 #root{display:flex;flex-direction:column;width:100vw;height:100vh;}
 
-/* ── HEADER ── */
-#hdr{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:5px 14px;
-  border-bottom:1px solid rgba(0,180,255,0.2);
-  background:linear-gradient(90deg,#030810,#060f1e,#030810);
-  flex-shrink:0;height:46px;
-}
+/* HEADER */
+#hdr{display:flex;align-items:center;justify-content:space-between;padding:5px 14px;border-bottom:1px solid rgba(0,180,255,0.2);background:linear-gradient(90deg,#030810,#060f1e,#030810);flex-shrink:0;height:46px;}
 .logo-t{font-family:'Orbitron',monospace;font-size:17px;font-weight:900;color:#00d4ff;text-shadow:0 0 16px rgba(0,212,255,.6);letter-spacing:3px;}
 .logo-s{font-size:8px;letter-spacing:3px;color:rgba(160,200,230,.4);margin-top:1px;}
 .hdr-mid{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:#00d4ff;letter-spacing:4px;text-shadow:0 0 20px rgba(0,212,255,.5);}
-.hdr-r{display:flex;align-items:center;gap:12px;font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(160,200,230,.5);}
-.conn-dot{width:7px;height:7px;border-radius:50%;background:#00ff9d;box-shadow:0 0 8px rgba(0,255,157,.6);animation:blink 1.8s ease-in-out infinite;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.hdr-r{display:flex;align-items:center;gap:10px;font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(160,200,230,.5);}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:#00ff9d;box-shadow:0 0 8px rgba(0,255,157,.6);animation:pulse 1.8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ── MAIN 3-COL GRID ── */
-#main{
-  display:grid;
-  grid-template-columns:190px 1fr 210px;
-  gap:6px;padding:6px;
-  flex:1;min-height:0;
-}
+/* MODE TOGGLE */
+#mode-toggle{display:flex;gap:0;border:1px solid rgba(0,180,255,.3);border-radius:3px;overflow:hidden;flex-shrink:0;}
+.mode-btn{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1.5px;padding:4px 10px;cursor:pointer;border:none;background:transparent;color:rgba(160,200,230,.4);transition:all .2s;}
+.mode-btn.active{background:rgba(0,212,255,.15);color:#00d4ff;text-shadow:0 0 8px rgba(0,212,255,.6);}
+.mode-btn:hover:not(.active){background:rgba(0,212,255,.06);color:rgba(0,212,255,.7);}
+#mode-divider{width:1px;background:rgba(0,180,255,.3);}
 
-/* ── PANEL BASE ── */
-.pnl{
-  background:#080e1a;
-  border:1px solid rgba(0,180,255,0.15);
-  border-radius:3px;
-  display:flex;flex-direction:column;gap:5px;
-  padding:7px;position:relative;overflow:hidden;
-}
+/* MAIN */
+#main{display:grid;grid-template-columns:200px 1fr 220px;gap:6px;padding:6px;flex:1;min-height:0;}
+
+/* PANEL */
+.pnl{background:#080e1a;border:1px solid rgba(0,180,255,0.15);border-radius:3px;display:flex;flex-direction:column;gap:5px;padding:7px;position:relative;overflow:hidden;}
 .pnl::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.4),transparent);}
 .sec{font-family:'Orbitron',monospace;font-size:7.5px;letter-spacing:2.5px;color:rgba(0,212,255,.7);text-transform:uppercase;padding-bottom:4px;border-bottom:1px solid rgba(0,180,255,.12);flex-shrink:0;}
 
-/* ══════════════════════════════
-   LEFT PANEL
-══════════════════════════════ */
-/* Street box */
-#street-box{background:rgba(0,180,255,.06);border:1px solid rgba(0,255,157,.2);border-radius:2px;padding:6px 8px;text-align:center;flex-shrink:0;}
-#street-name{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:#00ff9d;text-shadow:0 0 20px rgba(0,255,157,.7);letter-spacing:2px;}
-#street-cnt{font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(160,200,230,.5);margin-top:2px;}
+/* LEFT — STREET + NUTS */
+#street-box{background:rgba(0,180,255,.06);border:1px solid rgba(0,255,157,.2);border-radius:2px;padding:8px;text-align:center;flex-shrink:0;}
+#street-name{font-family:'Orbitron',monospace;font-size:26px;font-weight:900;color:#00ff9d;text-shadow:0 0 20px rgba(0,255,157,.7);letter-spacing:2px;}
+#street-cnt{font-family:'Share Tech Mono',monospace;font-size:12px;color:rgba(160,200,230,.5);margin-top:2px;}
+#nuts-list{display:flex;flex-direction:column;gap:4px;flex:1;overflow:hidden;}
+.nuts-row{display:flex;align-items:center;gap:5px;padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.05);}
+.n-rank{font-family:'Orbitron',monospace;font-size:12px;color:#ffb800;min-width:16px;}
+.n-eq{font-family:'Share Tech Mono',monospace;font-size:10px;color:#00d4ff;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.25);border-radius:2px;padding:2px 5px;min-width:44px;text-align:center;}
+.n-hand{font-size:16px;font-weight:700;flex:1;}
+.n-type{font-size:9px;color:rgba(160,200,230,.5);text-align:right;line-height:1.3;}
 
-/* Nuts rows */
-#nuts-list{display:flex;flex-direction:column;gap:3px;flex:1;overflow:hidden;}
-.nuts-row{display:flex;align-items:center;gap:4px;padding:3px 4px;border-bottom:1px solid rgba(255,255,255,.04);}
-.n-rank{font-family:'Orbitron',monospace;font-size:10px;color:#ffb800;min-width:13px;}
-.n-eq{font-family:'Share Tech Mono',monospace;font-size:9px;color:#00d4ff;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.25);border-radius:2px;padding:1px 4px;min-width:40px;text-align:center;}
-.n-hand{font-size:13px;font-weight:700;flex:1;}
-.n-type{font-size:8px;color:rgba(160,200,230,.45);text-align:right;}
-
-/* Legend */
-.leg-row{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(160,200,230,.5);}
-.leg-sw{width:11px;height:11px;border-radius:2px;flex-shrink:0;}
-
-/* ══════════════════════════════
-   CENTER PANEL
-══════════════════════════════ */
-#center-pnl{padding:5px;}
-
-.cam-hdr{display:flex;justify-content:space-between;align-items:center;padding:0 2px;flex-shrink:0;}
+/* CENTER */
+#center-pnl{padding:5px;gap:4px;}
+.cam-hdr{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
 .cam-lbl{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;color:rgba(0,212,255,.7);}
 .cam-lbl span{color:#00d4ff;}
 
-/* Camera / video area */
-#cam-wrap{
-  flex:1;position:relative;
-  background:#000;
-  border:1px solid rgba(0,180,255,.25);
-  border-radius:3px;
-  overflow:hidden;min-height:0;
-}
-#cam-video{width:100%;height:100%;object-fit:cover;display:block;}
+/* Camera wrap */
+#cam-wrap{flex:1;position:relative;background:#000;border:1px solid rgba(0,180,255,.25);border-radius:3px;overflow:hidden;min-height:0;}
+#cam-video{width:100%;height:100%;object-fit:cover;display:none;}
 #cam-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
-#cam-placeholder{
-  position:absolute;inset:0;
-  background:radial-gradient(ellipse at center, #0a1830 0%, #020810 70%);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
-}
-/* Poker table oval inside placeholder */
-#table-oval{
-  width:78%;height:74%;
-  border:3px solid #1e2d45;
-  border-radius:120px;
-  background:radial-gradient(ellipse, #0d1f35 0%, #070f1c 100%);
-  position:relative;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 40px rgba(0,0,0,.8),inset 0 0 30px rgba(0,0,0,.6);
-}
-#table-oval::before{content:'';position:absolute;inset:6px;border:1px solid rgba(0,180,255,.1);border-radius:114px;}
-/* Placeholder players */
-.pl-chip{width:32px;height:32px;border-radius:50%;background:#0f1e30;border:1px solid #1e2d45;display:flex;align-items:center;justify-content:center;font-size:9px;color:#3a5070;font-family:'Share Tech Mono',monospace;}
+#cam-placeholder{position:absolute;inset:0;background:radial-gradient(ellipse at center,#0a1830 0%,#020810 70%);display:flex;align-items:center;justify-content:center;}
+#table-oval{width:80%;height:76%;border:3px solid #1e2d45;border-radius:120px;background:radial-gradient(ellipse,#0d1f35 0%,#070f1c 100%);position:relative;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(0,0,0,.8),inset 0 0 30px rgba(0,0,0,.6);}
+#table-oval::before{content:'';position:absolute;inset:6px;border:1px solid rgba(0,180,255,.08);border-radius:114px;}
+.pl-chip{width:28px;height:28px;border-radius:50%;background:#0f1e30;border:1px solid #1e2d45;display:flex;align-items:center;justify-content:center;font-size:8px;color:#3a5070;font-family:'Share Tech Mono',monospace;}
 .pl-cards{display:flex;gap:2px;}
-.pl-card-back{width:10px;height:15px;background:#1a2a40;border:1px solid #243550;border-radius:1px;}
-#pl-top{position:absolute;top:-20px;display:flex;flex-direction:column;align-items:center;gap:2px;}
-#pl-left{position:absolute;left:-22px;display:flex;align-items:center;gap:2px;}
-#pl-right{position:absolute;right:-22px;display:flex;align-items:center;gap:2px;}
-#pl-bot{position:absolute;bottom:-22px;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.pl-card-back{width:9px;height:13px;background:#1a2a40;border:1px solid #243550;border-radius:1px;}
+#pl-top{position:absolute;top:-17px;display:flex;flex-direction:column;align-items:center;gap:2px;}
+#pl-left{position:absolute;left:-18px;display:flex;align-items:center;gap:2px;}
+#pl-right{position:absolute;right:-18px;display:flex;align-items:center;gap:2px;}
+#pl-bot{position:absolute;bottom:-17px;display:flex;flex-direction:column;align-items:center;gap:2px;}
 
-/* Community card ROI row */
-#roi-row{
-  display:flex;gap:4px;align-items:flex-end;
-  position:relative;z-index:5;
+/* BOARD CARDS AREA — dropdowns ON TOP of cards */
+#board-area{display:flex;gap:6px;padding:4px 2px;align-items:flex-start;flex-shrink:0;}
+.board-slot{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+
+/* Dropdowns above card */
+.slot-inputs{display:flex;gap:2px;width:100%;}
+.slot-inputs select{
+  flex:1;min-width:0;
+  background:#0c1525;
+  border:1px solid rgba(0,180,255,.3);border-radius:3px;
+  font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;
+  padding:3px 1px;cursor:pointer;outline:none;text-align:center;
+  transition:border-color .2s;
 }
-.roi-slot{
-  display:flex;flex-direction:column;align-items:center;gap:2px;
-  flex:1;max-width:54px;
+.slot-inputs select:focus{border-color:rgba(0,212,255,.8);}
+.rank-sel{color:#e0f0ff;}
+
+/* Card display */
+.board-card{
+  width:100%;aspect-ratio:2.2/3.2;
+  border:2px solid rgba(0,255,157,.7);border-radius:5px;
+  background:rgba(0,255,157,.04);box-shadow:0 0 12px rgba(0,255,157,.15);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;transition:border-color .2s,box-shadow .2s;
 }
-.roi-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,.6);}
-.roi-card{
-  width:100%;aspect-ratio:2/3;
-  border:2px solid rgba(0,255,157,.8);
-  border-radius:3px;
-  background:rgba(0,255,157,.04);
-  box-shadow:0 0 10px rgba(0,255,157,.2);
+.board-card.waiting{border-color:rgba(0,180,255,.18);box-shadow:none;background:transparent;}
+.board-card.active{border-color:rgba(0,255,157,.9);box-shadow:0 0 16px rgba(0,255,157,.3);}
+.card-inner{
+  width:88%;height:88%;background:#fff;border-radius:4px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   position:relative;
 }
-.roi-card.waiting{border-color:rgba(0,180,255,.2);box-shadow:none;background:transparent;}
-.roi-card .card-inner{
-  width:90%;height:90%;background:#fff;border-radius:2px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  position:relative;
-}
-.card-rank-tl{position:absolute;top:2px;left:3px;font-size:10px;font-weight:700;color:#111;line-height:1;}
-.card-suit-br{position:absolute;bottom:2px;right:3px;font-size:10px;line-height:1;}
-.card-suit-center{font-size:20px;line-height:1;}
-.suit-c{color:#1a7a1a;}
-.suit-d{color:#cc2020;}
-.suit-h{color:#cc2020;}
+.card-rank-tl{position:absolute;top:3px;left:4px;font-size:13px;font-weight:900;line-height:1;font-family:'Rajdhani',sans-serif;}
+.card-rank-br{position:absolute;bottom:3px;right:4px;font-size:13px;font-weight:900;line-height:1;font-family:'Rajdhani',sans-serif;transform:rotate(180deg);}
+.card-suit-center{font-size:28px;line-height:1;}
 .suit-s{color:#111;}
-.roi-wait-txt{font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(0,180,255,.4);letter-spacing:1px;animation:blink 1.4s step-end infinite;}
-.roi-status{font-family:'Share Tech Mono',monospace;font-size:7px;color:#00ff9d;letter-spacing:.5px;text-align:center;}
+.suit-h{color:#d00020;}
+.suit-d{color:#0055cc;}
+.suit-c{color:#007a2a;}
+.wait-txt{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,180,255,.35);letter-spacing:1px;animation:blink2 1.4s step-end infinite;}
+.slot-status{font-family:'Share Tech Mono',monospace;font-size:7px;color:#00ff9d;letter-spacing:.5px;text-align:center;}
 
-/* Stabilizer bar */
-#stab-bar{
-  display:flex;align-items:center;gap:7px;padding:3px 8px;
-  border:1px solid rgba(0,255,157,.25);border-radius:2px;
-  background:rgba(0,255,157,.03);
-  font-family:'Share Tech Mono',monospace;font-size:9px;
-  flex-shrink:0;
-}
+/* Hide inputs in camera mode */
+.cam-mode .slot-inputs{display:none;}
+
+/* Stabilizer */
+#stab-bar{display:flex;align-items:center;gap:7px;padding:4px 8px;border:1px solid rgba(0,255,157,.2);border-radius:2px;background:rgba(0,255,157,.03);font-family:'Share Tech Mono',monospace;font-size:9px;flex-shrink:0;}
 #stab-dot{width:7px;height:7px;border-radius:50%;}
-#stab-txt{flex:1;color:#00ff9d;}
+#stab-txt{flex:1;}
 #stab-conf{color:#00d4ff;}
 
-/* ══════════════════════════════
-   RIGHT PANEL
-══════════════════════════════ */
-.wet-big{font-family:'Orbitron',monospace;font-size:24px;font-weight:700;color:#ff3b3b;text-shadow:0 0 14px rgba(255,59,59,.5);}
+/* RIGHT */
+.wet-big{font-family:'Orbitron',monospace;font-size:22px;font-weight:700;color:#ff3b3b;text-shadow:0 0 14px rgba(255,59,59,.5);}
 .wet-sub{font-size:9px;color:#ff3b3b;letter-spacing:2px;margin-top:-2px;}
-
-.metric{margin-bottom:7px;}
+.metric{margin-bottom:6px;}
 .metric-lbl{font-size:9px;letter-spacing:1.5px;color:rgba(160,200,230,.45);margin-bottom:2px;}
 .bar-wrap{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}
 .bar-fill{height:100%;border-radius:2px;transition:width .7s ease;}
 .metric-val{font-family:'Share Tech Mono',monospace;font-size:11px;margin-top:2px;}
-
 .range-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:3px;}
 .range-name{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1.5px;margin-bottom:3px;}
 .range-val{font-family:'Share Tech Mono',monospace;font-size:13px;font-weight:700;margin-top:2px;}
 
-/* ── HEATMAP ── */
-#hm-wrap{flex:1;display:flex;flex-direction:column;min-height:0;gap:3px;}
+/* HEATMAP */
+#hm-wrap{flex:1;display:flex;flex-direction:column;min-height:0;gap:2px;position:relative;}
 #hm-grid{
   display:grid;
-  /* 1 header col + 13 data cols = 14 */
-  grid-template-columns:10px repeat(13,1fr);
-  gap:1px;
-  flex:1;min-height:0;
-  align-content:start;
+  grid-template-columns:11px repeat(13,1fr);
+  gap:1px;flex:1;min-height:0;align-content:start;
 }
-.hm-hdr{font-family:'Share Tech Mono',monospace;font-size:6px;color:rgba(0,212,255,.5);display:flex;align-items:center;justify-content:center;}
-.hm-c{
-  font-family:'Share Tech Mono',monospace;font-size:5.5px;
-  display:flex;align-items:center;justify-content:center;
-  border-radius:1px;aspect-ratio:1/1;
-  transition:background-color .4s ease;
-  cursor:default;color:rgba(255,255,255,.65);
-}
+.hm-hdr{font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(0,212,255,.55);display:flex;align-items:center;justify-content:center;}
+.hm-c{font-family:'Share Tech Mono',monospace;font-size:6px;display:flex;align-items:center;justify-content:center;border-radius:1px;aspect-ratio:1/1;transition:background-color .3s ease;cursor:default;color:rgba(255,255,255,.75);}
+#hm-spin{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,8,15,.75);border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:10px;color:#00d4ff;letter-spacing:2px;}
+#hm-spin.active{display:flex;}
 
-/* ── FOOTER ── */
-#ftr{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:3px 14px;
-  border-top:1px solid rgba(0,180,255,.15);
-  font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(160,200,230,.4);
-  flex-shrink:0;background:rgba(0,0,0,.5);
-}
+/* FOOTER */
+#ftr{display:flex;justify-content:space-between;align-items:center;padding:3px 14px;border-top:1px solid rgba(0,180,255,.15);font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(160,200,230,.4);flex-shrink:0;background:rgba(0,0,0,.5);}
 .analyzing{color:#00ff9d;animation:blink2 1.4s step-end infinite;}
 @keyframes blink2{0%,100%{opacity:1}50%{opacity:.15}}
 
-/* Demo controls */
-#demo-ctrl{
-  position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
-  display:flex;gap:5px;
-  background:rgba(4,8,15,.9);border:1px solid rgba(0,180,255,.2);
-  border-radius:3px;padding:5px 8px;z-index:100;
-}
-.dc-btn{
-  font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;
-  padding:4px 10px;border-radius:2px;cursor:pointer;border:1px solid;
-  transition:background .2s;
-}
-.dc-btn.street{background:rgba(0,100,200,.15);border-color:rgba(0,180,255,.4);color:#00d4ff;}
-.dc-btn.street:hover{background:rgba(0,100,200,.35);}
-.dc-btn.conf{background:rgba(0,200,100,.1);border-color:rgba(0,255,157,.3);color:#00ff9d;}
-.dc-btn.conf:hover{background:rgba(0,200,100,.25);}
+/* BRAIN OVERLAY */
+#brain-overlay{position:fixed;inset:0;background:rgba(4,8,15,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:1000;transition:opacity .5s;}
+#brain-overlay.hidden{opacity:0;pointer-events:none;}
+.brain-title{font-family:'Orbitron',monospace;font-size:18px;color:#00d4ff;letter-spacing:4px;text-shadow:0 0 20px rgba(0,212,255,.6);}
+.brain-msg{font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(160,200,230,.6);}
+.brain-prog-wrap{width:300px;height:3px;background:rgba(0,180,255,.1);border-radius:2px;overflow:hidden;}
+.brain-prog{height:100%;background:linear-gradient(90deg,#00d4ff,#00ff9d);border-radius:2px;transition:width .4s;}
+@keyframes progpulse{0%,100%{opacity:1}50%{opacity:.3}}
 </style>
 </head>
 <body>
 <div id="root">
 
+<!-- BRAIN OVERLAY -->
+<div id="brain-overlay">
+  <div class="brain-title">SPECTRA BRAIN</div>
+  <div class="brain-msg" id="brain-msg">INITIALIZING PYODIDE...</div>
+  <div class="brain-prog-wrap"><div class="brain-prog" id="brain-prog" style="width:8%"></div></div>
+  <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(160,200,230,.3);margin-top:4px;" id="brain-sub">loading python runtime</div>
+</div>
+
 <!-- HEADER -->
 <div id="hdr">
-  <div><div class="logo-t">GXIVISION</div><div class="logo-s">GXIVISION POKER SYSTEM v2.0</div></div>
-  <div class="hdr-mid">GXIVISION</div>
+  <div><div class="logo-t">SPECTRA</div><div class="logo-s">SPECTRA POKER SYSTEM v2.0</div></div>
+  <div class="hdr-mid">SPECTRA</div>
   <div class="hdr-r">
-    <div class="conn-dot"></div><span id="conn-txt">CONNECTED</span>
+    <!-- MODE TOGGLE -->
+    <div id="mode-toggle">
+      <button class="mode-btn active" id="btn-manual" onclick="setMode('MANUAL')">MANUAL</button>
+      <div id="mode-divider"></div>
+      <button class="mode-btn" id="btn-camera" onclick="setMode('CAMERA')">CAMERA</button>
+    </div>
+    <div class="conn-dot"></div>
     <span>|</span><span id="fps-d">FPS: 29</span>
     <span id="time-d">--:--:--</span>
+    <span id="brain-badge" style="font-family:'Orbitron',monospace;font-size:8px;padding:2px 6px;border:1px solid rgba(0,180,255,.3);border-radius:2px;color:rgba(0,180,255,.6);letter-spacing:1px;">BRAIN:INIT</span>
   </div>
 </div>
 
 <!-- MAIN -->
 <div id="main">
 
-  <!-- LEFT -->
+  <!-- LEFT: STREET + NUTS -->
   <div class="pnl">
     <div id="street-box">
       <div id="street-name">PREFLOP</div>
       <div id="street-cnt">0 / 5</div>
     </div>
-
     <div class="sec" style="margin-top:3px">NUTS RANKING <span style="font-size:6.5px;opacity:.6">[ABSOLUTE]</span></div>
-    <div id="nuts-list"></div>
-
-    <div style="margin-top:auto;flex-shrink:0;">
-      <div class="sec">LEGEND <span style="font-size:6.5px;opacity:.6">(STRENGTH)</span></div>
-      <div style="display:flex;flex-direction:column;gap:4px;margin-top:5px;">
-        <div class="leg-row"><div class="leg-sw" style="background:#b91c1c"></div>100 - 80</div>
-        <div class="leg-row"><div class="leg-sw" style="background:#c2410c"></div>80 - 60</div>
-        <div class="leg-row"><div class="leg-sw" style="background:#ca8a04"></div>60 - 40</div>
-        <div class="leg-row"><div class="leg-sw" style="background:#15803d"></div>40 - 20</div>
-        <div class="leg-row"><div class="leg-sw" style="background:#0e7490"></div>20 - 0</div>
-      </div>
+    <div id="nuts-list">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(160,200,230,.3);padding:10px 4px;line-height:1.6;">ボードを3枚以上<br>入力するとNUTS<br>が表示されます</div>
     </div>
   </div>
 
   <!-- CENTER -->
   <div class="pnl" id="center-pnl">
     <div class="cam-hdr">
-      <div class="cam-lbl">▐ LIVE CAMERA FEED <span>[OVERHEAD MAT]</span></div>
-      <div id="board-hash" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(160,200,230,.4)">BOARD: --</div>
+      <div class="cam-lbl" id="cam-lbl-txt">▐ MANUAL BOARD INPUT <span>[SIMULATOR MODE]</span></div>
+      <div id="board-hash" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(0,212,255,.6)">BOARD: --</div>
     </div>
 
-    <!-- Camera / placeholder area -->
+    <!-- Camera/table view -->
     <div id="cam-wrap">
-      <video id="cam-video" autoplay playsinline muted style="display:none;"></video>
+      <video id="cam-video" autoplay playsinline muted></video>
       <canvas id="cam-canvas"></canvas>
-
-      <!-- Placeholder: stylized poker table -->
       <div id="cam-placeholder">
         <div id="table-oval">
-          <!-- top player -->
-          <div id="pl-top">
-            <div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div>
-            <div class="pl-chip">D</div>
-          </div>
-          <!-- left player -->
-          <div id="pl-left">
-            <div class="pl-chip">P1</div>
-            <div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div>
-          </div>
-          <!-- right player -->
-          <div id="pl-right">
-            <div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div>
-            <div class="pl-chip">P3</div>
-          </div>
-          <!-- bottom player -->
-          <div id="pl-bot">
-            <div class="pl-chip">P2</div>
-            <div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div>
-          </div>
-          <!-- Community cards -->
-          <div id="roi-row"></div>
+          <div id="pl-top"><div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div><div class="pl-chip">D</div></div>
+          <div id="pl-left"><div class="pl-chip">P1</div><div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div></div>
+          <div id="pl-right"><div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div><div class="pl-chip">P3</div></div>
+          <div id="pl-bot"><div class="pl-chip">P2</div><div class="pl-cards"><div class="pl-card-back"></div><div class="pl-card-back"></div></div></div>
         </div>
       </div>
     </div>
 
+    <!-- Board area: dropdowns on top, cards below -->
+    <div id="board-area"></div>
+
     <!-- Stabilizer -->
     <div id="stab-bar">
       <div id="stab-dot" style="background:rgba(0,255,157,.2);"></div>
-      <div id="stab-txt" style="color:rgba(160,200,230,.4);">STABILIZER: WAITING...</div>
+      <div id="stab-txt" style="color:rgba(160,200,230,.4);">MANUAL INPUT MODE — SELECT CARDS ABOVE</div>
       <div id="stab-conf">CONF: --</div>
     </div>
   </div>
 
-  <!-- RIGHT -->
+  <!-- RIGHT: ANALYTICS + HEATMAP -->
   <div class="pnl">
     <div class="sec">ANALYTICS &amp; HUD</div>
 
-    <!-- progress -->
-    <div style="height:4px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;flex-shrink:0;">
-      <div id="prog-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#00d4ff,#1a6aff);border-radius:2px;transition:width .7s;box-shadow:0 0 8px rgba(0,212,255,.4);"></div>
+    <div style="height:3px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;flex-shrink:0;">
+      <div id="prog-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#00d4ff,#1a6aff);border-radius:2px;transition:width .7s;"></div>
     </div>
 
-    <!-- Board texture -->
     <div style="background:rgba(0,0,0,.3);border:1px solid rgba(0,180,255,.12);border-radius:3px;padding:7px;flex-shrink:0;">
       <div class="sec" style="border:none;padding:0;margin-bottom:5px;">▐ BOARD TEXTURE</div>
       <div class="wet-big" id="wet-val">--%</div>
       <div class="wet-sub" id="wet-lbl">ANALYZING</div>
-      <div style="margin-top:8px;">
+      <div style="margin-top:7px;">
         <div class="metric">
           <div class="metric-lbl">CONNECTEDNESS</div>
           <div class="bar-wrap"><div class="bar-fill" id="bar-con" style="width:0%;background:#00d4ff;"></div></div>
@@ -341,7 +260,6 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       </div>
     </div>
 
-    <!-- Range advantage -->
     <div style="background:rgba(0,0,0,.3);border:1px solid rgba(0,180,255,.12);border-radius:3px;padding:7px;flex-shrink:0;">
       <div class="sec" style="border:none;padding:0;margin-bottom:5px;">▐ RANGE ADVANTAGE <span style="font-size:6px;">(BTN vs BB)</span></div>
       <div class="range-grid">
@@ -356,343 +274,435 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
           <div class="range-val" id="val-bb" style="color:#60a5fa;">--%</div>
         </div>
       </div>
-      <canvas id="sparkline" width="190" height="34" style="width:100%;margin-top:5px;opacity:.7;"></canvas>
+      <canvas id="sparkline" width="200" height="32" style="width:100%;margin-top:5px;opacity:.7;"></canvas>
     </div>
 
-    <!-- Heatmap -->
     <div class="sec">▐ DYNAMIC HEATMAP</div>
     <div id="hm-wrap">
       <div id="hm-grid"></div>
+      <div id="hm-spin">CALCULATING...</div>
     </div>
   </div>
 
 </div><!-- /main -->
 
-<!-- FOOTER -->
 <div id="ftr">
   <span class="analyzing">● ANALYZING BOARD... LIVE</span>
   <span id="ftr-hash">HASH: N/A</span>
-  <span>GXIVISION POKER SYSTEM v2.0</span>
-</div>
-
-<!-- DEMO CONTROLS -->
-<div id="demo-ctrl">
-  <button class="dc-btn street" onclick="setStreet('PREFLOP',0,[])"          >PREFLOP</button>
-  <button class="dc-btn street" onclick="setStreet('FLOP',3,['9c','8c','7d'])">FLOP</button>
-  <button class="dc-btn street" onclick="setStreet('TURN',4,['9c','8c','7d','Jc'])">TURN</button>
-  <button class="dc-btn street" onclick="setStreet('RIVER',5,['9c','8c','7d','Jc','2d'])">RIVER</button>
-  <button class="dc-btn conf"   onclick="cycleConf()"                         id="conf-btn">LOCKED</button>
+  <span id="calc-time" style="color:rgba(0,212,255,.5);">CALC: --ms</span>
+  <span>SPECTRA POKER SYSTEM v2.0</span>
 </div>
 
 </div><!-- /root -->
-
 <script>
 /* ═══════════════════════════════════════════════════
-   SPECTRA GXIVISION — UI ENGINE (no WebSocket, no server)
+   SPECTRA v2.0 — BRAIN SIMULATOR
 ═══════════════════════════════════════════════════ */
+const RANKS_LIST  = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+const SUITS_LIST  = ['s','h','d','c'];
+const SUIT_SYM    = {s:'♠',h:'♥',d:'♦',c:'♣'};
+const SUIT_CLS    = {s:'suit-s',h:'suit-h',d:'suit-d',c:'suit-c'};
+const SUIT_COLORS = {s:'#222',h:'#d00020',d:'#0055cc',c:'#007a2a'};
+const STREET_COL  = {PREFLOP:'#00d4ff',FLOP:'#00ff9d',TURN:'#ffb800',RIVER:'#ff3b3b'};
+const HAND_TYPES  = {1:'STR.FLUSH',2:'FOUR OF KIND',3:'FULL HOUSE',4:'FLUSH',5:'STRAIGHT',6:'THREE OF KIND',7:'TWO PAIR',8:'ONE PAIR',9:'HIGH CARD'};
 
-const RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+let currentBoard = [];
+let brainReady   = false;
+let pyodideObj   = null;
+let calcTimer    = null;
+let currentMode  = 'MANUAL'; // MANUAL | CAMERA
+let camStream    = null;
 
-/* ── State ── */
-let S = {
-  street : 'PREFLOP',
-  count  : 0,
-  board  : [],
-  conf   : 'LOCKED',   // LOCKED | TRACKING | UNSTABLE | LOST
-  hm     : [],         // 169 strength values
-};
+/* ══════════════════════════════
+   MODE TOGGLE
+══════════════════════════════ */
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('btn-manual').classList.toggle('active', mode==='MANUAL');
+  document.getElementById('btn-camera').classList.toggle('active', mode==='CAMERA');
 
-const CONF_CYCLE = ['LOCKED','TRACKING','UNSTABLE','LOST'];
-let confIdx = 0;
-function cycleConf(){
-  confIdx=(confIdx+1)%CONF_CYCLE.length;
-  S.conf=CONF_CYCLE[confIdx];
-  document.getElementById('conf-btn').textContent=S.conf;
-  applyConfStyle();
+  const boardArea = document.getElementById('board-area');
+  const lbl = document.getElementById('cam-lbl-txt');
+
+  if (mode === 'MANUAL') {
+    // show dropdowns, hide camera
+    boardArea.classList.remove('cam-mode');
+    lbl.innerHTML = '▐ MANUAL BOARD INPUT <span>[SIMULATOR MODE]</span>';
+    stopCamera();
+    document.getElementById('cam-placeholder').style.display='flex';
+    document.getElementById('cam-video').style.display='none';
+    setStabState('MANUAL');
+  } else {
+    // hide dropdowns, start camera
+    boardArea.classList.add('cam-mode');
+    lbl.innerHTML = '▐ LIVE CAMERA FEED <span>[OVERHEAD MAT]</span>';
+    startCamera();
+    setStabState('CAM');
+  }
+}
+
+async function startCamera() {
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+    const v = document.getElementById('cam-video');
+    v.srcObject = camStream; v.style.display='block';
+    document.getElementById('cam-placeholder').style.display='none';
+  } catch(e) {
+    setStabState('CAM_ERR');
+  }
+}
+
+function stopCamera() {
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
 }
 
 /* ══════════════════════════════
-   HEATMAP BUILD
+   BRAIN INIT
 ══════════════════════════════ */
-function buildHeatmap(){
-  const grid = document.getElementById('hm-grid');
-  grid.innerHTML='';
-
-  /* corner blank */
-  const corner=document.createElement('div'); corner.className='hm-hdr'; grid.appendChild(corner);
-  /* column headers */
-  RANKS.forEach(r=>{
-    const h=document.createElement('div'); h.className='hm-hdr'; h.textContent=r; grid.appendChild(h);
-  });
-  /* rows */
-  RANKS.forEach((r1,i)=>{
-    /* row header */
-    const rh=document.createElement('div'); rh.className='hm-hdr'; rh.textContent=r1; grid.appendChild(rh);
-    /* cells */
-    RANKS.forEach((r2,j)=>{
-      const lbl = i===j ? r1+r2 : (i<j ? r1+r2+'s' : r2+r1+'o');
-      const c=document.createElement('div');
-      c.className='hm-c'; c.id='hc'+(i*13+j);
-      c.title=lbl; c.textContent=lbl.slice(0,2);
-      c.style.backgroundColor='#0d1a2a';
-      grid.appendChild(c);
-    });
-  });
+function setBrainMsg(msg,sub,prog){
+  document.getElementById('brain-msg').textContent=msg;
+  document.getElementById('brain-sub').textContent=sub||'';
+  document.getElementById('brain-prog').style.width=(prog||8)+'%';
 }
 
+async function initBrain(){
+  try{
+    setBrainMsg('LOADING PYTHON RUNTIME...','pyodide v0.26.0',15);
+    pyodideObj=await loadPyodide();
+    setBrainMsg('LOADING MICROPIP...','package manager',40);
+    await pyodideObj.loadPackage('micropip');
+    setBrainMsg('INSTALLING TREYS...','poker evaluation library',65);
+    await pyodideObj.runPythonAsync(`import micropip\nawait micropip.install('treys')`);
+    setBrainMsg('INITIALIZING EVALUATOR...','building lookup tables',88);
+    await pyodideObj.runPythonAsync(`from treys import Card, Evaluator\n_evaluator=Evaluator()\nprint("treys ready")`);
+    setBrainMsg('BRAIN ONLINE','ready',100);
+    brainReady=true;
+    document.getElementById('brain-badge').textContent='BRAIN:READY';
+    document.getElementById('brain-badge').style.color='#00ff9d';
+    document.getElementById('brain-badge').style.borderColor='rgba(0,255,157,.4)';
+    setTimeout(()=>document.getElementById('brain-overlay').classList.add('hidden'),600);
+    if(currentBoard.length>=3) triggerBrainUpdate();
+  }catch(e){
+    setBrainMsg('BRAIN ERROR','treys failed to load — check network',0);
+    document.getElementById('brain-badge').textContent='BRAIN:ERR';
+    document.getElementById('brain-badge').style.color='#ff3b3b';
+  }
+}
+
+/* ══════════════════════════════
+   TREYS EVAL 169
+══════════════════════════════ */
+async function evalAll169(board){
+  const t0=performance.now();
+  const result=await pyodideObj.runPythonAsync(`
+import json
+from treys import Card, Evaluator
+board_cards=[Card.new(c) for c in ${JSON.stringify(board)}]
+ev=Evaluator()
+ranks=list('AKQJT98765432')
+suits_h=['s','h','d','c']
+results=[]
+seen_boards=set(str(c) for c in board_cards)
+for i,r1 in enumerate(ranks):
+    for j,r2 in enumerate(ranks):
+        if i==j:
+            pairs=[(r1+'s',r1+'h'),(r1+'s',r1+'d'),(r1+'h',r1+'c')]
+            scores_p=[]
+            for h1,h2 in pairs:
+                c1,c2=Card.new(h1),Card.new(h2)
+                if str(c1) not in seen_boards and str(c2) not in seen_boards:
+                    try: scores_p.append(ev.evaluate(board_cards,[c1,c2]))
+                    except: pass
+            score=min(scores_p) if scores_p else 9999
+            label=r1+r2
+            rc=ev.get_rank_class(score) if scores_p else 9
+        elif i<j:
+            s_scores=[]
+            for s in suits_h:
+                c1,c2=Card.new(r1+s),Card.new(r2+s)
+                if str(c1) not in seen_boards and str(c2) not in seen_boards:
+                    try: s_scores.append((ev.evaluate(board_cards,[c1,c2]),ev.get_rank_class(ev.evaluate(board_cards,[c1,c2]))))
+                    except: pass
+            score=min(s_scores,key=lambda x:x[0])[0] if s_scores else 9999
+            rc=min(s_scores,key=lambda x:x[0])[1] if s_scores else 9
+            label=r1+r2+'s'
+        else:
+            o_scores=[]
+            for s1 in suits_h:
+                for s2 in suits_h:
+                    if s1==s2: continue
+                    c1,c2=Card.new(r2+s1),Card.new(r1+s2)
+                    if str(c1) not in seen_boards and str(c2) not in seen_boards:
+                        try: o_scores.append((ev.evaluate(board_cards,[c1,c2]),ev.get_rank_class(ev.evaluate(board_cards,[c1,c2]))))
+                        except: pass
+            score=min(o_scores,key=lambda x:x[0])[0] if o_scores else 9999
+            rc=min(o_scores,key=lambda x:x[0])[1] if o_scores else 9
+            label=r2+r1+'o'
+        results.append({'hand':label,'score':score,'rc':rc})
+scores_only=[r['score'] for r in results]
+s_min,s_max=min(scores_only),max(scores_only)
+for r in results:
+    r['pct']=round(100-(r['score']-s_min)/(s_max-s_min+1)*100,1)
+json.dumps(results)
+`);
+  const ms=Math.round(performance.now()-t0);
+  document.getElementById('calc-time').textContent=`CALC: ${ms}ms`;
+  return JSON.parse(result);
+}
+
+function topN(data,n){return[...data].sort((a,b)=>b.pct-a.pct).slice(0,n);}
+
+/* ══════════════════════════════
+   TEXTURE
+══════════════════════════════ */
+function calcTexture(board){
+  if(board.length<3)return null;
+  const ranks=board.map(c=>'AKQJT98765432'.indexOf(c[0]));
+  const suits=board.map(c=>c[1]);
+  const sorted=[...ranks].sort((a,b)=>a-b);
+  let gaps=0; for(let i=1;i<sorted.length;i++) gaps+=sorted[i]-sorted[i-1];
+  const connect=Math.max(0,Math.round(100-gaps*8));
+  const suitCounts={};
+  suits.forEach(s=>suitCounts[s]=(suitCounts[s]||0)+1);
+  const maxSuit=Math.max(...Object.values(suitCounts));
+  const flush=Math.round(maxSuit/board.length*100);
+  const wet=Math.round((connect+flush)/2);
+  const lbl=wet>=80?'VERY WET':wet>=60?'WET':wet>=40?'SEMI-WET':wet>=20?'DRY':'VERY DRY';
+  return{wet,connect,flush,lbl};
+}
+
+/* ══════════════════════════════
+   RENDERERS
+══════════════════════════════ */
 function strengthColor(v){
   if(v>=80)return'#b91c1c';
   if(v>=60)return'#c2410c';
   if(v>=40)return'#ca8a04';
   if(v>=20)return'#15803d';
-  if(v> 0)return'#0e7490';
+  if(v>0)return'#0e7490';
   return'#0d1a2a';
 }
 
-function genHeatmapData(street,board){
-  const data=[];
-  for(let i=0;i<13;i++) for(let j=0;j<13;j++){
-    const isPair=i===j, isSuited=i<j;
-    const rankMax=Math.max(13-i,13-j), rankSum=(13-i)+(13-j);
-    let v=0;
-    if(street==='PREFLOP'){
-      v=isPair?60+rankMax*3:isSuited?30+rankSum*1.5:20+rankSum;
-    } else if(street==='FLOP'){
-      const gap=13-Math.abs(i-j);
-      v=isPair?55+rankMax*2.5:isSuited?gap*5+rankMax*2:gap*3+rankMax;
-      v+=Math.random()*14-7;
-    } else if(street==='TURN'){
-      const gap=13-Math.abs(i-j);
-      v=isPair?60+rankMax*2:isSuited?gap*6+rankMax*2.5:gap*2+rankMax;
-      v+=Math.random()*10-5;
-    } else {
-      v=isPair?50+rankMax*3:isSuited&&Math.abs(i-j)<3?rankSum*3:Math.max(0,rankMax*2-10);
-      v+=Math.random()*7-3.5;
-    }
-    data.push(Math.min(100,Math.max(0,Math.round(v))));
-  }
-  return data;
-}
-
-function renderHeatmap(data,animate){
-  data.forEach((v,idx)=>{
-    const c=document.getElementById('hc'+idx);
-    if(!c)return;
-    if(animate){setTimeout(()=>{c.style.backgroundColor=strengthColor(v);},Math.random()*280|0);}
-    else{c.style.backgroundColor=strengthColor(v);}
+function buildHeatmap(){
+  const grid=document.getElementById('hm-grid');
+  grid.innerHTML='';
+  const corner=document.createElement('div');corner.className='hm-hdr';grid.appendChild(corner);
+  RANKS_LIST.forEach(r=>{const h=document.createElement('div');h.className='hm-hdr';h.textContent=r;grid.appendChild(h);});
+  RANKS_LIST.forEach((r1,i)=>{
+    const rh=document.createElement('div');rh.className='hm-hdr';rh.textContent=r1;grid.appendChild(rh);
+    RANKS_LIST.forEach((r2,j)=>{
+      const lbl=i===j?r1+r2:(i<j?r1+r2+'s':r2+r1+'o');
+      const c=document.createElement('div');c.className='hm-c';c.id='hc'+(i*13+j);
+      c.title=lbl;c.textContent=lbl.slice(0,2);c.style.backgroundColor='#0d1a2a';
+      grid.appendChild(c);
+    });
   });
 }
 
-/* ══════════════════════════════
-   NUTS RANKING
-══════════════════════════════ */
-const NUTS={
-  PREFLOP:[
-    {hand:'AA', eq:'85.2',type:'プレミアム'},
-    {hand:'KK', eq:'82.4',type:'プレミアム'},
-    {hand:'QQ', eq:'79.9',type:'プレミアム'},
-    {hand:'AKs',eq:'67.0',type:'スーテッド'},
-    {hand:'JJ', eq:'77.5',type:'プレミアム'},
-  ],
-  FLOP:[
-    {hand:'JTo',eq:'98.7',type:'ストレート'},
-    {hand:'99', eq:'99.7',type:'セット'},
-    {hand:'88', eq:'97.1',type:'セット'},
-    {hand:'T9s',eq:'89.4',type:'ストレート'},
-    {hand:'AcKc',eq:'85.6',type:'ストレート'},
-  ],
-  TURN:[
-    {hand:'JTo',eq:'99.1',type:'ストレート確定'},
-    {hand:'99', eq:'98.3',type:'セット強化'},
-    {hand:'AcKc',eq:'92.0',type:'フラッシュドロー'},
-    {hand:'88', eq:'88.5',type:'SET'},
-    {hand:'T9s',eq:'87.0',type:'ストレート'},
-  ],
-  RIVER:[
-    {hand:'JTo',eq:'99.8',type:'NUTS'},
-    {hand:'99', eq:'98.9',type:'セット'},
-    {hand:'AcKc',eq:'97.2',type:'フラッシュ'},
-    {hand:'88', eq:'94.0',type:'SET'},
-    {hand:'KTo',eq:'85.0',type:'Bluff Catcher'},
-  ],
-};
-function renderNuts(street){
-  const list=NUTS[street]||NUTS.PREFLOP;
-  document.getElementById('nuts-list').innerHTML=list.map((x,i)=>`
+function renderHeatmap(data){
+  data.forEach((item,idx)=>{
+    const c=document.getElementById('hc'+idx);
+    if(c)c.style.backgroundColor=strengthColor(item.pct);
+  });
+}
+
+function renderNuts(data){
+  const top=topN(data,7);
+  document.getElementById('nuts-list').innerHTML=top.map((item,i)=>`
     <div class="nuts-row">
       <div class="n-rank">${i+1}</div>
-      <div class="n-eq">${x.eq}%</div>
-      <div class="n-hand">${x.hand}</div>
-      <div class="n-type">${x.type}</div>
+      <div class="n-eq">${item.pct.toFixed(1)}%</div>
+      <div class="n-hand">${item.hand}</div>
+      <div class="n-type">${HAND_TYPES[item.rc]||''}</div>
     </div>`).join('');
 }
 
-/* ══════════════════════════════
-   ROI CARDS (center)
-══════════════════════════════ */
-const SUIT_SYMBOL={'c':'♣','d':'♦','h':'♥','s':'♠'};
-const SUIT_CLASS  ={'c':'suit-c','d':'suit-d','h':'suit-h','s':'suit-s'};
-
-function renderROI(board){
-  const row=document.getElementById('roi-row');
-  row.innerHTML='';
-  for(let i=0;i<5;i++){
-    const slot=document.createElement('div'); slot.className='roi-slot';
-    const lbl=document.createElement('div'); lbl.className='roi-lbl'; lbl.textContent='ROI '+(i+1);
-    const card=document.createElement('div');
-    if(i<board.length){
-      const raw=board[i];
-      const rank=raw[0].toUpperCase();
-      const suit=raw[1];
-      const sym=SUIT_SYMBOL[suit]||'';
-      const cls=SUIT_CLASS[suit]||'';
-      card.className='roi-card';
-      card.innerHTML=`
-        <div class="card-inner">
-          <span class="card-rank-tl ${cls}">${rank}</span>
-          <span class="card-suit-center ${cls}">${sym}</span>
-        </div>`;
-    } else {
-      card.className='roi-card waiting';
-      card.innerHTML=`<div class="roi-wait-txt">[WAITING]</div>`;
-    }
-    slot.appendChild(lbl);
-    slot.appendChild(card);
-    /* status label under card */
-    if(i<board.length){
-      const st=document.createElement('div'); st.className='roi-status';
-      st.textContent='LOCKED ✓'; slot.appendChild(st);
-    }
-    row.appendChild(slot);
+function renderAnalytics(board){
+  const tex=calcTexture(board);
+  if(!tex){
+    document.getElementById('wet-val').textContent='--%';
+    document.getElementById('wet-lbl').textContent='ANALYZING';
+    ['bar-con','bar-fls','bar-btn','bar-bb'].forEach(id=>document.getElementById(id).style.width='0%');
+    ['val-con','val-fls','val-btn','val-bb'].forEach(id=>document.getElementById(id).textContent='--%');
+    return;
   }
+  document.getElementById('wet-val').textContent=tex.wet+'%';
+  document.getElementById('wet-lbl').textContent=tex.lbl;
+  document.getElementById('bar-con').style.width=tex.connect+'%';
+  document.getElementById('val-con').textContent=tex.connect+'%';
+  document.getElementById('bar-fls').style.width=tex.flush+'%';
+  document.getElementById('val-fls').textContent=tex.flush+'%';
+  const btn=Math.round(50+tex.wet*.12);const bb=100-btn;
+  document.getElementById('bar-btn').style.width=btn+'%';document.getElementById('val-btn').textContent=btn+'%';
+  document.getElementById('bar-bb').style.width=bb+'%';document.getElementById('val-bb').textContent=bb+'%';
+  document.getElementById('prog-bar').style.width=(board.length/5*100)+'%';
+  drawSparkline(btn,bb);
 }
 
-/* ══════════════════════════════
-   ANALYTICS
-══════════════════════════════ */
-const ANA={
-  PREFLOP:{wet:'--',lbl:'ANALYZING',con:0,fls:0,btn:50,bb:50},
-  FLOP:   {wet:'95%',lbl:'VERY WET', con:92,fls:85,btn:62,bb:38},
-  TURN:   {wet:'87%',lbl:'WET',      con:88,fls:82,btn:58,bb:42},
-  RIVER:  {wet:'71%',lbl:'SEMI-WET', con:70,fls:78,btn:55,bb:45},
-};
-let spkBTN=[15,15,15,15,15], spkBB=[15,15,15,15,15];
-
-function renderAnalytics(street,count){
-  const d=ANA[street]||ANA.PREFLOP;
-  document.getElementById('wet-val').textContent=d.wet;
-  document.getElementById('wet-lbl').textContent=d.lbl;
-  document.getElementById('bar-con').style.width=d.con+'%';
-  document.getElementById('val-con').textContent=d.con?d.con+'%':'--%';
-  document.getElementById('bar-fls').style.width=d.fls+'%';
-  document.getElementById('val-fls').textContent=d.fls?d.fls+'%':'--%';
-  document.getElementById('bar-btn').style.width=d.btn+'%';
-  document.getElementById('val-btn').textContent=d.btn?d.btn+'%':'--%';
-  document.getElementById('bar-bb').style.width=d.bb+'%';
-  document.getElementById('val-bb').textContent=d.bb?d.bb+'%':'--%';
-  document.getElementById('prog-bar').style.width=(count/5*100)+'%';
-  /* sparkline */
-  spkBTN.push(30-d.btn*.28); spkBTN.shift();
-  spkBB.push(30-d.bb*.28);   spkBB.shift();
-  drawSparkline();
-}
-
-function drawSparkline(){
-  const cv=document.getElementById('sparkline');
-  const ctx=cv.getContext('2d');
-  const W=cv.width,H=cv.height;
-  ctx.clearRect(0,0,W,H);
-  const draw=(pts,col)=>{
-    ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=1.5;
-    pts.forEach((y,x)=>x===0?ctx.moveTo(x*(W/4),y*(H/30)):ctx.lineTo(x*(W/4),y*(H/30)));
-    ctx.stroke();
-  };
-  draw(spkBTN,'#ff3b3b'); draw(spkBB,'#3b82f6');
-}
-
-/* ══════════════════════════════
-   STABILIZER STYLE
-══════════════════════════════ */
-function applyConfStyle(){
-  const dot=document.getElementById('stab-dot');
-  const txt=document.getElementById('stab-txt');
-  const conf=S.conf;
-  const styles={
-    LOCKED:  {dc:'#00ff9d',tc:'#00ff9d',msg:'STABILIZER LOCKED [CONFIRMED 3 FRAME]'},
-    TRACKING:{dc:'#00d4ff',tc:'#00d4ff',msg:'OBSERVATION IN PROGRESS [TRACKING]'},
-    UNSTABLE:{dc:'#ffb800',tc:'#ffb800',msg:'WARNING: UNSTABLE PROBABILITY FIELD'},
-    LOST:    {dc:'#ff3b3b',tc:'#ff3b3b',msg:'CRITICAL: SELF-CONSISTENCY COLLAPSED'},
-  };
-  const st=styles[conf]||styles.LOCKED;
-  dot.style.background=st.dc;
-  dot.style.boxShadow=`0 0 8px ${st.dc}`;
-  txt.style.color=st.tc;
-  txt.textContent=st.msg;
-  document.getElementById('stab-conf').textContent='CONF: '+(conf==='LOCKED'?'0.97':conf==='TRACKING'?'0.71':conf==='UNSTABLE'?'0.34':'0.00');
-}
-
-/* ══════════════════════════════
-   STREET TRANSITION
-══════════════════════════════ */
-const STREET_COLOR={PREFLOP:'#00d4ff',FLOP:'#00ff9d',TURN:'#ffb800',RIVER:'#ff3b3b'};
-
-function setStreet(street,count,board){
-  S.street=street; S.count=count; S.board=board;
-
-  /* street indicator */
+function renderStreet(board){
+  const count=board.length;
+  const street=count<3?'PREFLOP':count===3?'FLOP':count===4?'TURN':'RIVER';
   const sn=document.getElementById('street-name');
-  sn.textContent=street;
-  sn.style.color=STREET_COLOR[street];
-  sn.style.textShadow=`0 0 20px ${STREET_COLOR[street]}`;
+  sn.textContent=street;sn.style.color=STREET_COL[street];sn.style.textShadow=`0 0 20px ${STREET_COL[street]}`;
   document.getElementById('street-cnt').textContent=count+' / 5';
-
-  /* board hash */
   const hash=board.length?board.join(' ').toUpperCase():'--';
   document.getElementById('board-hash').textContent='BOARD: '+hash;
   document.getElementById('ftr-hash').textContent='HASH: '+hash;
-
-  /* sub-systems */
-  renderNuts(street);
-  renderROI(board);
-  renderAnalytics(street,count);
-
-  /* heatmap */
-  const data=genHeatmapData(street,board);
-  S.hm=data;
-  renderHeatmap(data,true);
 }
 
 /* ══════════════════════════════
-   CLOCK / FPS
+   BOARD AREA BUILD
+══════════════════════════════ */
+function buildBoardArea(){
+  const area=document.getElementById('board-area');
+  area.innerHTML='';
+  for(let i=0;i<5;i++){
+    const slot=document.createElement('div');slot.className='board-slot';slot.id='slot-'+i;
+
+    /* Dropdowns */
+    const inputs=document.createElement('div');inputs.className='slot-inputs';
+
+    const rSel=document.createElement('select');rSel.className='rank-sel';rSel.id='rsel-'+i;
+    rSel.innerHTML='<option value="">-</option>'+RANKS_LIST.map(r=>`<option value="${r}">${r}</option>`).join('');
+
+    const sSel=document.createElement('select');sSel.className='suit-sel';sSel.id='ssel-'+i;
+    sSel.innerHTML='<option value="">-</option>'+SUITS_LIST.map(s=>`<option value="${s}" style="color:${SUIT_COLORS[s]}">${SUIT_SYM[s]}</option>`).join('');
+
+    const updateSuitColor=()=>{sSel.style.color=SUIT_COLORS[sSel.value]||'rgba(160,200,230,.5)';};
+    sSel.addEventListener('change',()=>{updateSuitColor();onInputChanged();});
+    rSel.addEventListener('change',onInputChanged);
+    updateSuitColor();
+
+    inputs.appendChild(rSel);inputs.appendChild(sSel);
+
+    /* Card display */
+    const card=document.createElement('div');card.className='board-card waiting';card.id='bcard-'+i;
+    card.innerHTML=`<div class="wait-txt">CARD ${i+1}</div>`;
+
+    /* Status */
+    const status=document.createElement('div');status.className='slot-status';status.id='bstat-'+i;
+
+    slot.appendChild(inputs);slot.appendChild(card);slot.appendChild(status);
+    area.appendChild(slot);
+  }
+}
+
+function updateBoardCards(board){
+  for(let i=0;i<5;i++){
+    const card=document.getElementById('bcard-'+i);
+    const stat=document.getElementById('bstat-'+i);
+    if(i<board.length){
+      const raw=board[i],rank=raw[0].toUpperCase(),suit=raw[1];
+      const cls=SUIT_CLS[suit]||'';
+      card.className='board-card active';
+      card.innerHTML=`<div class="card-inner">
+        <span class="card-rank-tl ${cls}">${rank}</span>
+        <span class="card-suit-center ${cls}">${SUIT_SYM[suit]||''}</span>
+        <span class="card-rank-br ${cls}">${rank}</span>
+      </div>`;
+      stat.textContent='LOCKED ✓';stat.style.color='#00ff9d';
+    } else {
+      card.className='board-card waiting';
+      card.innerHTML=`<div class="wait-txt">CARD ${i+1}</div>`;
+      stat.textContent='';
+    }
+  }
+}
+
+function readInputBoard(){
+  const board=[];
+  for(let i=0;i<5;i++){
+    const r=document.getElementById('rsel-'+i)?.value;
+    const s=document.getElementById('ssel-'+i)?.value;
+    if(r&&s) board.push(r+s);
+  }
+  return board;
+}
+
+function onInputChanged(){
+  if(currentMode!=='MANUAL')return;
+  currentBoard=readInputBoard();
+  renderStreet(currentBoard);
+  updateBoardCards(currentBoard);
+  renderAnalytics(currentBoard);
+  if(currentBoard.length>=3){
+    setStabState('LOCKED');
+    clearTimeout(calcTimer);
+    calcTimer=setTimeout(triggerBrainUpdate,300);
+  } else {
+    setStabState('MANUAL');
+  }
+}
+
+async function triggerBrainUpdate(){
+  if(!brainReady||currentBoard.length<3)return;
+  setStabState('CALC');
+  document.getElementById('hm-spin').classList.add('active');
+  try{
+    const data=await evalAll169(currentBoard);
+    renderHeatmap(data);
+    renderNuts(data);
+    setStabState('DONE');
+  }catch(e){
+    console.error('Brain calc failed:',e);
+    setStabState('ERR');
+  }
+  document.getElementById('hm-spin').classList.remove('active');
+}
+
+/* ══════════════════════════════
+   STABILIZER
+══════════════════════════════ */
+function setStabState(state){
+  const dot=document.getElementById('stab-dot');
+  const txt=document.getElementById('stab-txt');
+  const map={
+    MANUAL: {c:'rgba(0,180,255,.4)',t:'rgba(0,180,255,.6)',msg:'MANUAL INPUT MODE — SELECT CARDS ABOVE'},
+    LOCKED: {c:'#00ff9d',t:'#00ff9d',msg:'BOARD LOCKED — BRAIN CALCULATING'},
+    CALC:   {c:'#ffb800',t:'#ffb800',msg:'EVALUATING 169 HANDS WITH TREYS...'},
+    DONE:   {c:'#00ff9d',t:'#00ff9d',msg:'BRAIN COMPLETE — HEATMAP UPDATED'},
+    ERR:    {c:'#ff3b3b',t:'#ff3b3b',msg:'BRAIN ERROR — CHECK CONSOLE'},
+    CAM:    {c:'#00d4ff',t:'#00d4ff',msg:'CAMERA MODE — LIVE FEED ACTIVE'},
+    CAM_ERR:{c:'#ff3b3b',t:'#ff3b3b',msg:'CAMERA ERROR — CHECK PERMISSIONS'},
+  };
+  const s=map[state]||map.MANUAL;
+  dot.style.background=s.c;dot.style.boxShadow=`0 0 8px ${s.c}`;
+  txt.style.color=s.t;txt.textContent=s.msg;
+  document.getElementById('stab-conf').textContent=
+    state==='DONE'?'CONF: 1.00':state==='CALC'?'CONF: ...':state==='CAM'?'CONF: LIVE':'CONF: --';
+}
+
+/* ══════════════════════════════
+   SPARKLINE
+══════════════════════════════ */
+function drawSparkline(btn,bb){
+  const cv=document.getElementById('sparkline');
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const line=(pts,col)=>{ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=1.5;pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();};
+  const pts1=[],pts2=[];
+  for(let x=0;x<=W;x+=4){const t=x/W;pts1.push({x,y:H/2-(btn/100-.5)*H*.6+Math.sin(t*Math.PI*4)*3});pts2.push({x,y:H/2-(bb/100-.5)*H*.6+Math.sin(t*Math.PI*4+2)*3});}
+  line(pts1,'#ff3b3b');line(pts2,'#3b82f6');
+}
+
+/* ══════════════════════════════
+   CLOCK
 ══════════════════════════════ */
 setInterval(()=>{
   const n=new Date();
-  document.getElementById('time-d').textContent=
-    String(n.getHours()).padStart(2,'0')+':'+
-    String(n.getMinutes()).padStart(2,'0')+':'+
-    String(n.getSeconds()).padStart(2,'0');
+  document.getElementById('time-d').textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
   document.getElementById('fps-d').textContent='FPS: '+(28+Math.floor(Math.random()*4));
 },1000);
-
-/* ══════════════════════════════
-   CAMERA (optional)
-══════════════════════════════ */
-async function tryCamera(){
-  try{
-    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
-    const v=document.getElementById('cam-video');
-    v.srcObject=stream; v.style.display='block';
-    document.getElementById('cam-placeholder').style.display='none';
-  }catch(e){/* no camera — placeholder stays */}
-}
-tryCamera();
 
 /* ══════════════════════════════
    BOOT
 ══════════════════════════════ */
 buildHeatmap();
-setStreet('FLOP',3,['9c','8c','7d']); // default demo state
-applyConfStyle();
+buildBoardArea();
+setStabState('MANUAL');
+renderStreet([]);
+drawSparkline(50,50);
+initBrain();
 </script>
 </body>
 </html>
